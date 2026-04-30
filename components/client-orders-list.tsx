@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, FileVideo, Clock, FileText, CheckCircle2, AlertCircle } from "lucide-react"
-import { getClientOrders, formatDate, Order } from "@/lib/order-service"
 import { useAuth } from "@/hooks/use-auth"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { formatDate } from "@/lib/order-service"
 
 const getStatusConfig = (status: string) => {
     switch (status) {
@@ -46,18 +48,9 @@ const getStatusConfig = (status: string) => {
 
 export function ClientOrdersList() {
     const { user } = useAuth()
-    const [orders, setOrders] = useState<Order[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const orders = useQuery(api.orders.getClientOrders)
 
-    useEffect(() => {
-        if (user?.id) {
-            const clientOrders = getClientOrders(user.id)
-            setOrders(clientOrders)
-        }
-        setIsLoading(false)
-    }, [user])
-
-    if (isLoading) {
+    if (orders === undefined) {
         return <div className="text-center py-8">Loading orders...</div>
     }
 
@@ -72,7 +65,7 @@ export function ClientOrdersList() {
                             const StatusIcon = statusConfig.icon
 
                             return (
-                                <Card key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                                <Card key={order._id} className="hover:bg-gray-50/50 transition-colors">
                                     <CardContent className="p-6">
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1">
@@ -104,7 +97,7 @@ export function ClientOrdersList() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <Link href={`/client/orders/${order.id}`}>
+                                            <Link href={`/client/orders/${order._id}`}>
                                                 <Button variant="outline" size="sm">
                                                     View Details
                                                     <ArrowRight className="ml-2 h-4 w-4" />

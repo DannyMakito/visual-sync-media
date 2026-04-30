@@ -4,10 +4,11 @@ import { v } from "convex/values"
 export default defineSchema({
     // Users table - synced from Clerk
     users: defineTable({
-        clerkId: v.string(),
+        clerkId: v.optional(v.string()),
         email: v.string(),
         name: v.string(),
         role: v.union(v.literal("admin"), v.literal("client"), v.literal("editor")),
+        isActive: v.optional(v.boolean()),
         createdAt: v.number(),
         updatedAt: v.number(),
     })
@@ -32,6 +33,8 @@ export default defineSchema({
         requirements: v.string(),
         dueDate: v.optional(v.string()),
         rawAssetsLink: v.optional(v.string()),
+        targetPlatforms: v.optional(v.array(v.string())),
+        stylePreset: v.optional(v.string()),
         status: v.union(
             v.literal("awaiting-quote"),
             v.literal("quoted"),

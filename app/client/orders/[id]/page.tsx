@@ -9,44 +9,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { getOrderById, getOrderMessages, createMessage, formatDate, formatDateTime, Order, Message } from "@/lib/order-service"
+import { formatDate, formatDateTime } from "@/lib/order-service"
 import { useAuth } from "@/hooks/use-auth"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params)
     const { user } = useAuth()
-    const [order, setOrder] = useState<Order | null>(null)
-    const [messages, setMessages] = useState<Message[]>([])
+    
+    // Check if it's a legacy ID from local storage
+    const isLegacyId = id.startsWith("order_")
+    
+    const orderId = isLegacyId ? undefined : (id as Id<"orders">)
+    const order = useQuery(api.orders.getOrderById, orderId ? { orderId } : "skip")
+    const messages = useQuery(api.messages.getOrderMessages, orderId ? { orderId } : "skip") || []
+    
+    const createMessageMutation = useMutation(api.messages.createMessage)
+
     const [message, setMessage] = useState("")
-    const [isLoading, setIsLoading] = useState(true)
     const [isSending, setIsSending] = useState(false)
 
-    useEffect(() => {
-        const loadOrder = getOrderById(id)
-        if (loadOrder) {
-            setOrder(loadOrder)
-            const orderMessages = getOrderMessages(id)
-            setMessages(orderMessages)
-        }
-        setIsLoading(false)
-    }, [id])
-
     const handleSendMessage = async () => {
-        if (!message.trim() || !user || !order) return
+        if (!message.trim() || !user || !order || !orderId) return
 
         setIsSending(true)
         try {
-            createMessage({
-                orderId: order.id,
-                sender: "client",
-                senderName: user.name || "Client",
-                senderEmail: user.email || "client@example.com",
+            await createMessageMutation({
+                orderId,
                 content: message,
             })
-
-            // Refresh messages
-            const updatedMessages = getOrderMessages(id)
-            setMessages(updatedMessages)
             setMessage("")
         } catch (error) {
             console.error("Error sending message:", error)
@@ -55,7 +48,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         }
     }
 
-    if (isLoading) {
+    if (isLegacyId) {
+        return (
+            <div className="space-y-6">
+                <Link
+                    href="/client/orders"
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition w-fit"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Orders
+                </Link>
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                        <p className="text-lg font-semibold">Legacy Order Not Found</p>
+                        <p className="text-muted-foreground text-center mt-2">
+                            This order was created on an older system and is no longer available.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    if (order === undefined) {
         return <div className="text-center py-8">Loading order...</div>
     }
 
@@ -128,7 +143,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <h1 className="text-3xl font-bold tracking-tight">
                             {order.title}
                         </h1>
-                        <p className="text-muted-foreground mt-1">Order #{order.id}</p>
+                        <p className="text-muted-foreground mt-1">Order #{order._id}</p>
                     </div>
                     <div className={`px-4 py-2 rounded-full text-sm font-semibold ${statusConfig.color}`}>
                         {statusConfig.label}
@@ -183,7 +198,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         TARGET PLATFORMS
                                     </p>
                                     <div className="flex flex-wrap gap-2">
-                                        {order.targetPlatforms.map((platform) => (
+                                        {order.targetPlatforms?.map((platform: string) => (
                                             <Badge key={platform}>{platform}</Badge>
                                         ))}
                                     </div>
@@ -192,7 +207,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <p className="text-sm font-semibold text-muted-foreground mb-2">
                                         STYLE PRESET
                                     </p>
-                                    <p className="text-base">{order.stylePreset.toUpperCase()}</p>
+                                    <p className="text-base">{order.stylePreset?.toUpperCase()}</p>
                                 </div>
                             </div>
 
@@ -279,17 +294,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <CardContent className="space-y-6">
                             <div className="space-y-4 mb-6 max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
                                 {messages.length > 0 ? (
-                                    messages.map((msg) => (
+                                    messages.map((msg: any) => (
                                         <div
-                                            key={msg.id}
+                                            key={msg._id}
                                             className={`p-4 rounded-lg ${
-                                                msg.sender === "admin"
+                                                msg.senderId !== order.clientId
                                                     ? "bg-white border border-gray-200"
                                                     : "bg-blue-50 border border-blue-200 ml-8"
                                             }`}
                                         >
                                             <div className="flex items-center gap-2 mb-2">
-                                                <p className="font-semibold">{msg.senderName}</p>
+                                                <p className="font-semibold">{msg.senderId !== order.clientId ? "Admin Team" : order.client?.name || "Client"}</p>
                                                 <span className="text-xs text-muted-foreground">
                                                     {formatDateTime(msg.createdAt)}
                                                 </span>

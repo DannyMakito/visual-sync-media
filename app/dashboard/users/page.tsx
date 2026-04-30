@@ -10,6 +10,10 @@
 "use client"
 
 import { useState } from "react"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
+import { toast } from "sonner"
 import {
     Search,
     Plus,
@@ -17,8 +21,20 @@ import {
     Mail,
     Shield,
     User as UserIcon,
-    PenTool
+    PenTool,
+    Trash2,
+    Edit2
 } from "lucide-react"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -61,73 +77,6 @@ interface User {
     joinedDate: string
 }
 
-const initialUsers: User[] = [
-    {
-        id: "1",
-        name: "John Doe",
-        email: "john@example.com",
-        role: "admin",
-        status: "active",
-        joinedDate: "2025-01-15",
-    },
-    {
-        id: "2",
-        name: "Jane Smith",
-        email: "jane@example.com",
-        role: "client",
-        status: "active",
-        joinedDate: "2025-02-20",
-    },
-    {
-        id: "3",
-        name: "Mike Johnson",
-        email: "mike@example.com",
-        role: "editor",
-        status: "inactive",
-        joinedDate: "2025-03-10",
-    },
-    {
-        id: "4",
-        name: "Sarah Wilson",
-        email: "sarah@example.com",
-        role: "client",
-        status: "active",
-        joinedDate: "2025-04-05",
-    },
-    {
-        id: "5",
-        name: "Tom Brown",
-        email: "tom@example.com",
-        role: "editor",
-        status: "pending",
-        joinedDate: "2026-01-25",
-    },
-    {
-        id: "6",
-        name: "Emily Davis",
-        email: "emily@example.com",
-        role: "admin",
-        status: "active",
-        joinedDate: "2025-06-12",
-    },
-    {
-        id: "7",
-        name: "Chris Lee",
-        email: "chris@example.com",
-        role: "client",
-        status: "active",
-        joinedDate: "2025-08-30",
-    },
-    {
-        id: "8",
-        name: "Alex Turner",
-        email: "alex@example.com",
-        role: "editor",
-        status: "inactive",
-        joinedDate: "2025-09-18",
-    },
-]
-
 const roleConfig = {
     admin: {
         label: "Admin",
@@ -150,6 +99,7 @@ const statusConfig = {
     active: { label: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" },
     inactive: { label: "Inactive", color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300" },
     pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" },
+    deactivated: { label: "Deactivated", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" },
 }
 
 function getInitials(name: string): string {
@@ -161,24 +111,103 @@ function getInitials(name: string): string {
 }
 
 export default function UsersPage() {
-    const [users] = useState<User[]>(initialUsers)
+    const liveUsers = useQuery(api.users.getAllUsers) || []
+    const createUser = useMutation(api.users.createUser)
+    const updateUser = useMutation(api.users.updateUser)
+    const updateUserRole = useMutation(api.users.updateUserRole)
+    const deleteUser = useMutation(api.users.deactivateUser)
+
     const [searchTerm, setSearchTerm] = useState("")
     const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all")
-    const [statusFilter, setStatusFilter] = useState<UserStatus | "all">("all")
+    const [statusFilter, setStatusFilter] = useState<string | "all">("all")
+    
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+    const [selectedUser, setSelectedUser] = useState<any>(null)
+    
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        role: "client" as UserRole
+    })
 
-    const filteredUsers = users
+    const filteredUsers = liveUsers
         .filter((user) =>
             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase())
         )
         .filter((user) => roleFilter === "all" || user.role === roleFilter)
-        .filter((user) => statusFilter === "all" || user.status === statusFilter)
+        .filter((user) => {
+            if (statusFilter === "all") return true
+            if (statusFilter === "active") return user.clerkId && user.isActive !== false
+            if (statusFilter === "pending") return !user.clerkId && user.isActive !== false
+            if (statusFilter === "inactive") return user.isActive === false
+            return true
+        })
 
     const userStats = {
-        total: users.length,
-        active: users.filter(u => u.status === "active").length,
-        admins: users.filter(u => u.role === "admin").length,
+        total: liveUsers.length,
+        active: liveUsers.filter(u => u.clerkId && u.isActive !== false).length,
+        admins: liveUsers.filter(u => u.role === "admin").length,
     }
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault()
+        try {
+            await createUser({
+                name: formData.name,
+                email: formData.email,
+                role: formData.role
+            })
+            toast.success("User created successfully")
+            setIsCreateDialogOpen(false)
+            setFormData({ name: "", email: "", role: "client" })
+        } catch (error) {
+            toast.error("Failed to create user")
+        }
+    }
+
+    const handleUpdateUser = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedUser) return
+        try {
+            await updateUser({
+                userId: selectedUser._id,
+                name: formData.name,
+                email: formData.email
+            })
+            await updateUserRole({
+                userId: selectedUser._id,
+                role: formData.role
+            })
+            toast.success("User updated successfully")
+            setIsEditDialogOpen(false)
+            setSelectedUser(null)
+        } catch (error) {
+            toast.error("Failed to update user")
+        }
+    }
+
+    const handleDeleteUser = async (userId: Id<"users">) => {
+        if (!confirm("Are you sure you want to deactivate this user?")) return
+        try {
+            await deleteUser({ userId })
+            toast.success("User deactivated")
+        } catch (error) {
+            toast.error("Failed to deactivate user")
+        }
+    }
+
+    const openEditDialog = (user: any) => {
+        setSelectedUser(user)
+        setFormData({
+            name: user.name,
+            email: user.email,
+            role: user.role as UserRole
+        })
+        setIsEditDialogOpen(true)
+    }
+
 
     return (
         <div className="space-y-6">
@@ -190,10 +219,64 @@ export default function UsersPage() {
                         Manage user accounts and permissions
                     </p>
                 </div>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add User
-                </Button>
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-orange-500 hover:bg-orange-600">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add User
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Create New User</DialogTitle>
+                            <DialogDescription>
+                                Add a new user to the system. They will be able to login once they sign up with this email.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleCreateUser} className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Full Name</Label>
+                                <Input 
+                                    id="name" 
+                                    placeholder="John Doe" 
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email Address</Label>
+                                <Input 
+                                    id="email" 
+                                    type="email" 
+                                    placeholder="john@example.com" 
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="role">Role</Label>
+                                <Select 
+                                    value={formData.role} 
+                                    onValueChange={(value: any) => setFormData({ ...formData, role: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="client">Client</SelectItem>
+                                        <SelectItem value="editor">Editor</SelectItem>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <DialogFooter>
+                                <Button type="submit" className="bg-orange-500 hover:bg-orange-600">Create User</Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             {/* Stats Cards */}
@@ -290,19 +373,29 @@ export default function UsersPage() {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredUsers.map((user) => {
-                                    const roleInfo = roleConfig[user.role]
-                                    const statusInfo = statusConfig[user.status]
+                                filteredUsers.map((user: any) => {
+                                    const roleInfo = roleConfig[user.role as UserRole] || roleConfig.client
+                                    
+                                    // Derive status
+                                    let status: "active" | "inactive" | "pending" | "deactivated" = "pending"
+                                    if (user.isActive === false) status = "deactivated"
+                                    else if (user.clerkId) status = "active"
+                                    
+                                    const statusInfo = statusConfig[status]
 
                                     return (
-                                        <TableRow key={user.id}>
+                                        <TableRow key={user._id}>
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-8 w-8">
-                                                        <AvatarImage src={user.avatar} alt={user.name} />
                                                         <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                                                     </Avatar>
-                                                    <span className="font-medium">{user.name}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{user.name}</span>
+                                                        {!user.clerkId && user.isActive !== false && (
+                                                            <span className="text-[10px] text-orange-500 font-bold uppercase tracking-wider">Pending Invite</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -322,7 +415,7 @@ export default function UsersPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
-                                                {new Date(user.joinedDate).toLocaleDateString()}
+                                                {new Date(user.createdAt).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell>
                                                 <DropdownMenu>
@@ -334,11 +427,17 @@ export default function UsersPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem>View Profile</DropdownMenuItem>
-                                                        <DropdownMenuItem>Edit User</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                                            <Edit2 className="mr-2 h-4 w-4" />
+                                                            Edit User
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className="text-red-600">
-                                                            Delete User
+                                                        <DropdownMenuItem 
+                                                            className="text-red-600 focus:text-red-600"
+                                                            onClick={() => handleDeleteUser(user._id)}
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Deactivate
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -351,6 +450,58 @@ export default function UsersPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Edit Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit User</DialogTitle>
+                        <DialogDescription>
+                            Update user information and permissions.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleUpdateUser} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-name">Full Name</Label>
+                            <Input 
+                                id="edit-name" 
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-email">Email Address</Label>
+                            <Input 
+                                id="edit-email" 
+                                type="email" 
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-role">Role</Label>
+                            <Select 
+                                value={formData.role} 
+                                onValueChange={(value: any) => setFormData({ ...formData, role: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="client">Client</SelectItem>
+                                    <SelectItem value="editor">Editor</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <DialogFooter>
+                            <Button type="submit" className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

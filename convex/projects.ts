@@ -58,6 +58,46 @@ export const createProject = mutation({
     },
 })
 
+// Create internal project (admin only)
+export const createInternalProject = mutation({
+    args: {
+        title: v.string(),
+        description: v.string(),
+        assigneeIds: v.array(v.id("users")),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) throw new Error("Not authenticated")
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user || user.role !== "admin") throw new Error("Only admin can create internal projects")
+
+        const now = Date.now()
+        const projectId = await ctx.db.insert("projects", {
+            title: args.title,
+            description: args.description,
+            clientId: user._id, // Assign to admin themselves
+            dealValue: 0,
+            status: "todo",
+            assigneeIds: args.assigneeIds,
+            progress: 0,
+            driveLinks: { raw: "", working: "" },
+            mediaSpecs: { duration: "N/A", ratio: "16:9" },
+            internalNotes: [],
+            statusLine: "Getting Started",
+            readyForClient: false,
+            createdAt: now,
+            updatedAt: now,
+        })
+
+        return projectId
+    },
+})
+
 // Get projects assigned to current editor
 export const getEditorProjects = query({
     args: {},

@@ -9,6 +9,8 @@ export const createOrder = mutation({
         requirements: v.string(),
         dueDate: v.optional(v.string()),
         rawAssetsLink: v.optional(v.string()),
+        targetPlatforms: v.optional(v.array(v.string())),
+        stylePreset: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity()
@@ -29,6 +31,8 @@ export const createOrder = mutation({
             requirements: args.requirements,
             dueDate: args.dueDate,
             rawAssetsLink: args.rawAssetsLink,
+            targetPlatforms: args.targetPlatforms,
+            stylePreset: args.stylePreset,
             status: "awaiting-quote",
             createdAt: now,
             updatedAt: now,

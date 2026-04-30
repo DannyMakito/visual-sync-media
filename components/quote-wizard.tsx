@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { createOrder } from "@/lib/order-service"
 import { useAuth } from "@/hooks/use-auth"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 interface QuoteWizardData {
     step: number
@@ -75,6 +76,7 @@ const STYLE_PRESETS = [
 export function QuoteWizard() {
     const router = useRouter()
     const { user } = useAuth()
+    const createOrderMutation = useMutation(api.orders.createOrder)
     const [data, setData] = React.useState<QuoteWizardData>({ step: 1 })
     const [isSubmitting, setIsSubmitting] = React.useState(false)
 
@@ -101,13 +103,9 @@ export function QuoteWizard() {
 
         setIsSubmitting(true)
         try {
-            createOrder({
-                clientId: user.id || "client_default",
-                clientName: user.name || "Client User",
-                clientEmail: user.email || "client@example.com",
+            await createOrderMutation({
                 title: data.projectHeadline || "Untitled Project",
                 service: data.service || "talking-head",
-                projectHeadline: data.projectHeadline || "",
                 requirements: data.coreRequirements || "",
                 rawAssetsLink: data.rawAssetsLink,
                 targetPlatforms: data.targetPlatforms || [],

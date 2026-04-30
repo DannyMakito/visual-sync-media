@@ -11,14 +11,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { getOrderById, getOrderMessages, createMessage, updateOrder, formatDate, formatDateTime, Order, Message } from "@/lib/order-service"
+import { formatDate, formatDateTime } from "@/lib/order-service"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 
 export default function AdminRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params)
-    const [order, setOrder] = useState<Order | null>(null)
-    const [messages, setMessages] = useState<Message[]>([])
+    
+    // Check if it's a legacy ID from local storage
+    const isLegacyId = id.startsWith("order_")
+    
+    const orderId = isLegacyId ? undefined : (id as Id<"orders">)
+    const order = useQuery(api.orders.getOrderById, orderId ? { orderId } : "skip")
+    const messages = useQuery(api.messages.getOrderMessages, orderId ? { orderId } : "skip") || []
+    
+    const updateOrderMutation = useMutation(api.orders.updateOrder)
+    const createMessageMutation = useMutation(api.messages.createMessage)
+
     const [message, setMessage] = useState("")
-    const [isLoadingOrder, setIsLoadingOrder] = useState(true)
     const [isSending, setIsSending] = useState(false)
 
     // Quote form state
@@ -27,32 +38,15 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
     const [quoteDescription, setQuoteDescription] = useState("")
     const [isSubmittingQuote, setIsSubmittingQuote] = useState(false)
 
-    useEffect(() => {
-        const loadOrder = getOrderById(id)
-        if (loadOrder) {
-            setOrder(loadOrder)
-            const orderMessages = getOrderMessages(id)
-            setMessages(orderMessages)
-        }
-        setIsLoadingOrder(false)
-    }, [id])
-
     const handleSendMessage = async () => {
-        if (!message.trim() || !order) return
+        if (!message.trim() || !order || !orderId) return
 
         setIsSending(true)
         try {
-            createMessage({
-                orderId: order.id,
-                sender: "admin",
-                senderName: "Admin Team",
-                senderEmail: "admin@universalmedia.com",
+            await createMessageMutation({
+                orderId,
                 content: message,
             })
-
-            // Refresh messages
-            const updatedMessages = getOrderMessages(id)
-            setMessages(updatedMessages)
             setMessage("")
         } catch (error) {
             console.error("Error sending message:", error)
@@ -62,11 +56,12 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
     }
 
     const handleSubmitQuote = async () => {
-        if (!quotePrice || !quoteDays || !quoteDescription || !order) return
+        if (!quotePrice || !quoteDays || !quoteDescription || !order || !orderId) return
 
         setIsSubmittingQuote(true)
         try {
-            const updatedOrder = updateOrder(order.id, {
+            await updateOrderMutation({
+                orderId,
                 quote: {
                     price: parseFloat(quotePrice),
                     estimatedDays: parseInt(quoteDays),
@@ -75,26 +70,16 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
                 status: "quoted",
             })
 
-            if (updatedOrder) {
-                setOrder(updatedOrder)
+            // Send a message to client about the quote
+            await createMessageMutation({
+                orderId,
+                content: `We've prepared your quote! The estimated cost is $${quotePrice} and will take approximately ${quoteDays} days. Check the quote tab for more details.`,
+            })
 
-                // Send a message to client about the quote
-                createMessage({
-                    orderId: order.id,
-                    sender: "admin",
-                    senderName: "Admin Team",
-                    senderEmail: "admin@universalmedia.com",
-                    content: `We've prepared your quote! The estimated cost is $${quotePrice} and will take approximately ${quoteDays} days. Check the quote tab for more details.`,
-                })
-
-                const updatedMessages = getOrderMessages(id)
-                setMessages(updatedMessages)
-
-                // Reset form
-                setQuotePrice("")
-                setQuoteDays("")
-                setQuoteDescription("")
-            }
+            // Reset form
+            setQuotePrice("")
+            setQuoteDays("")
+            setQuoteDescription("")
         } catch (error) {
             console.error("Error submitting quote:", error)
         } finally {
@@ -102,7 +87,29 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
         }
     }
 
-    if (isLoadingOrder) {
+    if (isLegacyId) {
+        return (
+            <div className="space-y-6">
+                <Link
+                    href="/admin/requests"
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition w-fit"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Requests
+                </Link>
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                        <p className="text-lg font-semibold">Legacy Request Not Found</p>
+                        <p className="text-muted-foreground text-center mt-2">
+                            This request was created on an older system and is no longer available.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    if (order === undefined) {
         return <div className="text-center py-8">Loading request...</div>
     }
 
@@ -143,9 +150,9 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
                         <h1 className="text-3xl font-bold tracking-tight">
                             {order.title}
                         </h1>
-                        <p className="text-muted-foreground mt-1">Order #{order.id}</p>
+                        <p className="text-muted-foreground mt-1">Order #{order._id}</p>
                         <p className="text-sm text-muted-foreground mt-2">
-                            From: <span className="font-medium">{order.clientName}</span> ({order.clientEmail})
+                            From: <span className="font-medium">{order.client?.name}</span> ({order.client?.email})
                         </p>
                     </div>
                     <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
@@ -221,7 +228,7 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
                                         TARGET PLATFORMS
                                     </p>
                                     <div className="flex flex-wrap gap-2">
-                                        {order.targetPlatforms.map((platform) => (
+                                        {order.targetPlatforms?.map((platform: string) => (
                                             <Badge key={platform}>{platform}</Badge>
                                         ))}
                                     </div>
@@ -230,7 +237,7 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
                                     <p className="text-sm font-semibold text-muted-foreground mb-2">
                                         STYLE PRESET
                                     </p>
-                                    <p className="text-base">{order.stylePreset.toUpperCase()}</p>
+                                    <p className="text-base">{order.stylePreset?.toUpperCase()}</p>
                                 </div>
                             </div>
 
@@ -316,17 +323,17 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
                         <CardContent className="space-y-6">
                             <div className="space-y-4 mb-6 max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
                                 {messages.length > 0 ? (
-                                    messages.map((msg) => (
+                                    messages.map((msg: any) => (
                                         <div
-                                            key={msg.id}
+                                            key={msg._id}
                                             className={`p-4 rounded-lg ${
-                                                msg.sender === "admin"
+                                                msg.senderId !== order.clientId
                                                     ? "bg-white border border-gray-200"
                                                     : "bg-blue-50 border border-blue-200 ml-8"
                                             }`}
                                         >
                                             <div className="flex items-center gap-2 mb-2">
-                                                <p className="font-semibold">{msg.senderName}</p>
+                                                <p className="font-semibold">{msg.senderId !== order.clientId ? "Admin Team" : order.client?.name}</p>
                                                 <span className="text-xs text-muted-foreground">
                                                     {formatDateTime(msg.createdAt)}
                                                 </span>

@@ -6,25 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Inbox, Clock } from "lucide-react"
-import { getAdminIncomingOrders, formatDate, Order } from "@/lib/order-service"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { formatDate } from "@/lib/order-service"
 
 export default function AdminRequestsPage() {
-    const [orders, setOrders] = useState<Order[]>([])
-    const [isLoading, setIsLoading] = useState(true)
-    const [isClient, setIsClient] = useState(false)
+    const orders = useQuery(api.orders.getPendingOrders)
 
-    useEffect(() => {
-        setIsClient(true)
-    }, [])
-
-    useEffect(() => {
-        if (!isClient) return
-        const incomingOrders = getAdminIncomingOrders()
-        setOrders(incomingOrders)
-        setIsLoading(false)
-    }, [isClient])
-
-    if (!isClient || isLoading) {
+    if (orders === undefined) {
         return <div className="text-center py-8">Loading incoming requests...</div>
     }
 
@@ -92,7 +81,7 @@ export default function AdminRequestsPage() {
             {orders.length > 0 ? (
                 <div className="grid gap-4">
                     {orders.map((order) => (
-                        <Card key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                        <Card key={order._id} className="hover:bg-gray-50/50 transition-colors">
                             <CardContent className="p-6">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1">
@@ -112,10 +101,10 @@ export default function AdminRequestsPage() {
                                                     CLIENT
                                                 </p>
                                                 <p className="text-sm font-medium">
-                                                    {order.clientName}
+                                                    {order.client?.name || order.clientName}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {order.clientEmail}
+                                                    {order.client?.email || order.clientEmail}
                                                 </p>
                                             </div>
                                             <div>
@@ -140,11 +129,11 @@ export default function AdminRequestsPage() {
                                         <div className="flex flex-col sm:flex-row gap-4 text-sm text-muted-foreground">
                                             <div>
                                                 <span className="font-medium">Platforms:</span>{" "}
-                                                {order.targetPlatforms.join(", ")}
+                                                {order.targetPlatforms?.join(", ") || "None"}
                                             </div>
                                             <div>
                                                 <span className="font-medium">Style:</span>{" "}
-                                                {order.stylePreset}
+                                                {order.stylePreset || "None"}
                                             </div>
                                             <div>
                                                 <span className="font-medium">Requested:</span>{" "}
@@ -153,7 +142,7 @@ export default function AdminRequestsPage() {
                                         </div>
                                     </div>
 
-                                    <Link href={`/admin/requests/${order.id}`}>
+                                    <Link href={`/admin/requests/${order._id}`}>
                                         <Button className="bg-orange-500 hover:bg-orange-600 text-white">
                                             Review & Quote
                                             <ArrowRight className="ml-2 h-4 w-4" />
