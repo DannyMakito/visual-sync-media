@@ -29,12 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
-      <ConvexClientProvider>
-        <html lang="en" className="dark" suppressHydrationWarning>
-          <body
-            className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-          >
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+      >
+        <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+          <ConvexClientProvider>
             <ThemeProvider
               attribute="class"
               defaultTheme="system"
@@ -48,9 +48,9 @@ export default function RootLayout({
                 </SidebarProvider>
               </AuthProvider>
             </ThemeProvider>
-          </body>
-        </html>
-      </ConvexClientProvider>
-    </ClerkProvider>
+          </ConvexClientProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

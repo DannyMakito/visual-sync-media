@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
+import { ChatInterface } from "@/components/chat-interface"
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params)
@@ -24,29 +25,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     
     const orderId = isLegacyId ? undefined : (id as Id<"orders">)
     const order = useQuery(api.orders.getOrderById, orderId ? { orderId } : "skip")
-    const messages = useQuery(api.messages.getOrderMessages, orderId ? { orderId } : "skip") || []
-    
-    const createMessageMutation = useMutation(api.messages.createMessage)
-
-    const [message, setMessage] = useState("")
-    const [isSending, setIsSending] = useState(false)
-
-    const handleSendMessage = async () => {
-        if (!message.trim() || !user || !order || !orderId) return
-
-        setIsSending(true)
-        try {
-            await createMessageMutation({
-                orderId,
-                content: message,
-            })
-            setMessage("")
-        } catch (error) {
-            console.error("Error sending message:", error)
-        } finally {
-            setIsSending(false)
-        }
-    }
 
     if (isLegacyId) {
         return (
@@ -283,64 +261,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 </TabsContent>
 
                 {/* Messages Tab */}
-                <TabsContent value="messages">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Communication</CardTitle>
-                            <CardDescription>
-                                Message with our team about this order
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="space-y-4 mb-6 max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
-                                {messages.length > 0 ? (
-                                    messages.map((msg: any) => (
-                                        <div
-                                            key={msg._id}
-                                            className={`p-4 rounded-lg ${
-                                                msg.senderId !== order.clientId
-                                                    ? "bg-white border border-gray-200"
-                                                    : "bg-blue-50 border border-blue-200 ml-8"
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <p className="font-semibold">{msg.senderId !== order.clientId ? "Admin Team" : order.client?.name || "Client"}</p>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {formatDateTime(msg.createdAt)}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-gray-700">{msg.content}</p>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                        No messages yet
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-3 border-t pt-6">
-                                <label className="text-sm font-semibold">
-                                    Send a Message
-                                </label>
-                                <Textarea
-                                    placeholder="Type your message here..."
-                                    value={message}
-                                    onChange={(e) => setMessage(e.target.value)}
-                                    className="min-h-24"
-                                    disabled={isSending}
-                                />
-                                <Button
-                                    className="bg-orange-500 hover:bg-orange-600 text-white"
-                                    onClick={handleSendMessage}
-                                    disabled={isSending || !message.trim()}
-                                >
-                                    <Send className="mr-2 h-4 w-4" />
-                                    {isSending ? "Sending..." : "Send Message"}
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <TabsContent value="messages" className="h-[500px]">
+                    <ChatInterface 
+                        orderId={orderId} 
+                        title={`Chat with ${order.title} Team`}
+                        showHead={false}
+                    />
                 </TabsContent>
             </Tabs>
         </div>

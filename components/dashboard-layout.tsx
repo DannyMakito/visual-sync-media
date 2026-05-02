@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/hooks/use-auth"
+import { useUser } from "@clerk/nextjs"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { useEffect } from "react"
@@ -32,18 +33,57 @@ import { Button } from "@/components/ui/button"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, role, loading, logout } = useAuth()
+    const { user: clerkUser, isLoaded: isClerkLoaded } = useUser()
     const router = useRouter()
     const pathname = usePathname()
     const { setTheme, theme } = useTheme()
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push("/login")
+        // Only redirect to login if Clerk confirms NO user is signed in
+        if (isClerkLoaded && !clerkUser) {
+            window.location.href = "/login"
+            return
         }
-    }, [user, loading, router])
 
-    if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>
-    if (!user) return null
+        // Role-based redirect: send non-admin users to their dashboard
+        // This is a client-side fallback for when middleware can't check role
+        if (user && role) {
+            if (role === "client" && !pathname.startsWith("/client")) {
+                window.location.href = "/client/dashboard"
+            } else if (role === "editor" && !pathname.startsWith("/editor")) {
+                window.location.href = "/editor/dashboard"
+            }
+        }
+    }, [isClerkLoaded, clerkUser, user, role, pathname])
+
+    // Show spinner while Clerk is loading OR while waiting for Convex user
+    if (!isClerkLoaded || loading || !user) {
+        // If Clerk says no user, don't show spinner — the redirect will handle it
+        if (isClerkLoaded && !clerkUser) return null
+
+        return (
+            <div className="flex h-screen items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-sm text-muted-foreground animate-pulse">
+                        {!isClerkLoaded ? "Loading..." : loading ? "Loading your dashboard..." : "Setting up your account..."}
+                    </p>
+                </div>
+            </div>
+        )
+    }
+
+    // If user is loaded but not admin, show redirect spinner
+    if (role && role !== "admin") {
+        return (
+            <div className="flex h-screen items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-sm text-muted-foreground animate-pulse">Redirecting to your dashboard...</p>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="flex min-h-screen w-full">

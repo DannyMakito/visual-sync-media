@@ -57,36 +57,26 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 
-// --- Types ---
-
-type EditorSpecialty = "Short-form" | "Long-form" | "VFX" | "Color Grading" | "Corporate" | "Management"
-
-interface Editor {
-    id: string
-    name: string
-    avatar: string
-    specialties: EditorSpecialty[]
-    currentlyEditing: number
-    isAdmin?: boolean
-}
-
-// --- Initial Data ---
-
-const INITIAL_EDITORS: Editor[] = [
-    { id: "admin-1", name: "Admin (You)", avatar: "/avatars/admin.png", specialties: ["Management"], currentlyEditing: 0, isAdmin: true },
-    { id: "e1", name: "John Doe", avatar: "/avatars/01.png", specialties: ["Short-form", "VFX"], currentlyEditing: 2 },
-    { id: "e2", name: "Jane Smith", avatar: "/avatars/02.png", specialties: ["Corporate", "Color Grading"], currentlyEditing: 1 },
-    { id: "e3", name: "Mike Johnson", avatar: "/avatars/03.png", specialties: ["Long-form", "VFX"], currentlyEditing: 3 },
-]
-
 // --- Components ---
 
 export default function TasksPage() {
     const { role } = useAuth()
     const isAdmin = role === 'admin'
 
+    const currentUser = useQuery(api.users.getCurrentUser)
     const projects = useQuery(api.projects.getActiveProjects) || []
+    const debugProjects = useQuery(api.projects.getAllProjectsDebug) || []
     const quotedOrders = useQuery(api.orders.getQuotedOrders) || []
+    const editors = useQuery(api.users.getAllEditors) || []
+
+    useEffect(() => {
+        console.log("TasksPage Data Check:", {
+            isAdmin,
+            projectsCount: projects.length,
+            debugProjectsCount: debugProjects.length,
+            role
+        })
+    }, [isAdmin, projects, debugProjects, role])
 
     const createProjectMutation = useMutation(api.projects.createProject)
     const createInternalProjectMutation = useMutation(api.projects.createInternalProject)
@@ -117,6 +107,7 @@ export default function TasksPage() {
 
     const activeProjects = projects.filter(p => p.status !== "done")
     const doneProjects = projects.filter(p => p.status === "done")
+    const selectedProjectForProgress = projects.find(p => p._id === progressProjectId)
 
     // --- Actions ---
 
@@ -130,17 +121,23 @@ export default function TasksPage() {
             return
         }
 
+        console.log("Starting createProject mutation", {
+            orderId: selectedOrderId,
+            assigneeIds: selectedAssignees
+        })
+
         try {
             await createProjectMutation({
                 orderId: selectedOrderId,
                 assigneeIds: selectedAssignees as Id<"users">[]
             })
+            console.log("Project created successfully")
             setIsCreateProjectOpen(false)
             setSelectedOrderId(null)
             setSelectedAssignees([])
             toast.success("Project created and added to production pipeline.")
         } catch (error) {
-            console.error(error)
+            console.error("Create project error:", error)
             toast.error("Failed to create project.")
         }
     }
@@ -155,12 +152,8 @@ export default function TasksPage() {
             await createInternalProjectMutation({
                 title: newTodoTitle,
                 description: newTodoDesc,
-                // Assigning the task to the current admin who creates it could be handled by the backend
-                // Wait, assigneeIds needs to be an array of convex user Ids.
-                // For now, let's leave assigneeIds empty or just use the current user if we had their ID.
-                // Wait, INITIAL_EDITORS is hardcoded. So admin-1 is not a Convex ID. 
-                // Let's pass an empty array and fix the backend or pass a known valid ID.
-                assigneeIds: [],
+                // Assign the task to the current admin who creates it
+                assigneeIds: currentUser ? [currentUser._id] : [],
             })
             setIsTodoDialogOpen(false)
             setNewTodoTitle("")
@@ -341,13 +334,13 @@ export default function TasksPage() {
                                     project.status === 'done' && "opacity-70 grayscale-[0.5]"
                                 )}>
                                     {isAdmin && (
-                                        <div className="px-3 py-1.5 bg-black/[0.03] flex justify-between items-center text-[9px] font-bold border-b">
+                                        <div className="px-3 py-2 bg-black/[0.03] flex justify-between items-center text-xs font-bold border-b">
                                             <span className="text-green-600">${project.dealValue}</span>
                                             <div className="flex items-center gap-2">
                                                 <button onClick={() => handleDeleteProject(project._id)} className="text-red-400 hover:text-red-500 transition-colors">
-                                                    <Trash2 size={10} />
+                                                    <Trash2 size={12} />
                                                 </button>
-                                                <span className="text-muted-foreground uppercase opacity-50">{project.client?.name || project.clientName || 'Unknown'}</span>
+                                                <span className="text-muted-foreground uppercase opacity-70">{project.client?.name || project.clientName || 'Unknown'}</span>
                                             </div>
                                         </div>
                                     )}
@@ -355,17 +348,21 @@ export default function TasksPage() {
                                     <div className="p-3 space-y-3">
                                         <div className="flex items-start justify-between gap-2">
                                             <h4 className="text-xs font-bold leading-none truncate">{project.title}</h4>
-                                            <div className="flex -space-x-1.5">
-                                                {project.assigneeIds.map((id: any) => (
-                                                    <div key={id} className="h-5 w-5 rounded-full border border-background bg-muted flex items-center justify-center text-[7px] font-bold uppercase transition-transform hover:scale-110" title={INITIAL_EDITORS.find(e => e.id === id)?.name || "Editor"}>
-                                                        {INITIAL_EDITORS.find(e => e.id === id)?.name?.split(' ').map((n: string) => n[0]).join('') || 'E'}
-                                                    </div>
-                                                ))}
+                                            <div className="flex -space-x-2">
+                                                {project.assigneeIds.map((id: any) => {
+                                                    const assignedEditor = editors.find(e => e.user?._id === id)
+                                                    const initials = assignedEditor?.user?.name?.split(' ').map((n: string) => n[0]).join('') || 'E'
+                                                    return (
+                                                        <div key={id} className="h-8 w-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-bold uppercase transition-transform hover:scale-110 shadow-sm" title={assignedEditor?.user?.name || "Editor"}>
+                                                            {initials}
+                                                        </div>
+                                                    )
+                                                })}
                                             </div>
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <div className="flex justify-between text-[9px] font-bold uppercase">
+                                            <div className="flex justify-between text-xs font-bold uppercase">
                                                 <button
                                                     onClick={() => project.status !== 'done' && handleOpenProgressDialog(project)}
                                                     className={cn("truncate text-left transition-colors", project.status !== 'done' && "text-primary hover:underline")}
@@ -379,25 +376,41 @@ export default function TasksPage() {
 
                                         {project.status === 'in-review' && (
                                             <div className="flex gap-1.5 pt-1">
-                                                <Button size="sm" className="h-7 text-[9px] flex-1 font-bold bg-green-600 hover:bg-green-700" onClick={() => handleReviewDecision(project._id, 'done')}>
-                                                    <Check size={12} className="mr-1" /> Complete
+                                                <Button size="sm" className="h-8 text-xs flex-1 font-bold bg-green-600 hover:bg-green-700" onClick={() => handleReviewDecision(project._id, 'done')}>
+                                                    <Check size={14} className="mr-1" /> Complete
                                                 </Button>
-                                                <Button size="sm" variant="outline" className="h-7 text-[9px] flex-1 font-bold border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleReviewDecision(project._id, 'revise')}>
-                                                    <ArrowLeft size={12} className="mr-1" /> Revise
+                                                <Button size="sm" variant="outline" className="h-8 text-xs flex-1 font-bold border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleReviewDecision(project._id, 'revise')}>
+                                                    <ArrowLeft size={14} className="mr-1" /> Revise
                                                 </Button>
                                             </div>
                                         )}
 
-                                        <div className="flex items-center justify-between pt-2 border-t border-muted text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
+                                        <div className="flex items-center justify-between pt-2 border-t border-muted text-xs text-muted-foreground font-medium uppercase tracking-tighter">
                                             <div className="flex items-center gap-2">
-                                                {project.mediaSpecs.ratio === '9:16' ? <Smartphone size={10} /> : <Monitor size={10} />}
+                                                {project.mediaSpecs.ratio === '9:16' ? <Smartphone size={12} /> : <Monitor size={12} />}
                                                 <span>{project.dueDate ? project.dueDate.split('-').slice(1).join('/') : 'N/A'}</span>
                                             </div>
-                                            {project.readyForClient && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none h-4 text-[8px]">SUBMITTED</Badge>}
+                                            {project.readyForClient && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none h-4 text-[10px]">SUBMITTED</Badge>}
                                         </div>
                                     </div>
                                 </Card>
                             ))}
+
+                            {status === 'todo' && projects.length === 0 && debugProjects.length > 0 && (
+                                <div className="mt-4 p-4 border border-blue-500/30 bg-blue-500/5 rounded-lg">
+                                    <p className="text-[10px] font-bold text-blue-500 uppercase mb-2 flex items-center gap-2">
+                                        <Zap size={10} /> Debug Info: Projects found in DB
+                                    </p>
+                                    <div className="space-y-2">
+                                        {debugProjects.map((p: any) => (
+                                            <div key={p._id} className="text-[9px] text-muted-foreground flex justify-between">
+                                                <span>{p.title}</span>
+                                                <span className="font-mono">{p.status}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -428,18 +441,24 @@ export default function TasksPage() {
                                             key={order._id}
                                             onClick={() => setSelectedOrderId(order._id)}
                                             className={cn(
-                                                "w-full p-3 rounded-lg border text-left transition-all",
+                                                "w-full p-4 rounded-xl border-2 text-left transition-all",
                                                 selectedOrderId === order._id
-                                                    ? "bg-orange-50 border-orange-500"
-                                                    : "bg-muted/30 border-transparent hover:border-muted"
+                                                    ? "bg-orange-500/10 border-orange-500 shadow-sm"
+                                                    : "bg-muted/20 border-transparent hover:border-muted hover:bg-muted/40"
                                             )}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm font-semibold">{order.title}</p>
-                                                    <p className="text-xs text-muted-foreground">{order.client?.name || order.clientName || 'Unknown'} • {order.service}</p>
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-bold truncate">{order.title}</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        <span className="font-semibold text-foreground/80">{order.client?.name || order.clientName || 'Unknown'}</span>
+                                                        <span className="mx-1">•</span>
+                                                        {order.service}
+                                                    </p>
                                                 </div>
-                                                <span className="text-sm font-bold text-green-600">${order.quote?.price}</span>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-sm font-black text-green-600">${order.quote?.price}</p>
+                                                </div>
                                             </div>
                                         </button>
                                     ))}
@@ -451,23 +470,36 @@ export default function TasksPage() {
                         <div className="space-y-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Assign Editors</Label>
                             <div className="grid grid-cols-2 gap-2">
-                                {INITIAL_EDITORS.filter(e => !e.isAdmin).map(editor => {
-                                    const isSelected = selectedAssignees.includes(editor.id)
+                                {editors.map(editorData => {
+                                    const editorId = editorData.user?._id
+                                    if (!editorId) return null
+                                    
+                                    const isSelected = selectedAssignees.includes(editorId)
                                     return (
                                         <button
-                                            key={editor.id}
-                                            onClick={() => toggleAssignee(editor.id)}
+                                            key={editorId}
+                                            onClick={() => toggleAssignee(editorId)}
                                             className={cn(
-                                                "flex items-center gap-2 p-2 rounded-md border text-left transition-all",
-                                                isSelected ? "bg-primary text-white border-primary" : "bg-muted/50 border-transparent hover:border-primary/20"
+                                                "flex items-center gap-3 p-3 rounded-lg border text-left transition-all",
+                                                isSelected 
+                                                    ? "bg-orange-500 text-white border-orange-500 shadow-md ring-2 ring-orange-500/20" 
+                                                    : "bg-muted/30 border-muted/50 hover:border-orange-500/50 hover:bg-muted/50"
                                             )}
                                         >
-                                            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold text-muted-foreground">
-                                                {editor.name.split(' ').map(n => n[0]).join('')}
+                                            <div className={cn(
+                                                "h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 shadow-sm",
+                                                isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                                            )}>
+                                                {editorData.user?.name?.split(' ').map(n => n[0]).join('')}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className="text-[10px] font-bold truncate">{editor.name}</div>
-                                                <div className="text-[8px] opacity-70">{editor.specialties.join(', ')}</div>
+                                                <div className="text-sm font-bold truncate leading-tight">{editorData.user?.name}</div>
+                                                <div className={cn(
+                                                    "text-xs truncate mt-0.5",
+                                                    isSelected ? "text-white/80" : "text-muted-foreground"
+                                                )}>
+                                                    {editorData.specialties?.join(', ') || "Editor"}
+                                                </div>
                                             </div>
                                         </button>
                                     )
@@ -560,45 +592,115 @@ export default function TasksPage() {
 
             {/* Progress Update Dialog */}
             <Dialog open={isProgressDialogOpen} onOpenChange={setIsProgressDialogOpen}>
-                <DialogContent className="sm:max-w-[400px]">
+                <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-base font-bold flex items-center gap-2 text-primary">
                             <RotateCcw size={18} />
-                            Update Progress
+                            Project Overview
                         </DialogTitle>
                         <DialogDescription className="text-xs">
-                            Manually adjust task completion and status message.
+                            {selectedProjectForProgress?.title}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4 space-y-6">
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Completion: {progressValue}%</Label>
+                    
+                    {selectedProjectForProgress && (
+                        <div className="py-4 space-y-6">
+                            {/* Team */}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase text-muted-foreground">Assigned Team</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedProjectForProgress.assignees?.map((assignee: any) => (
+                                        <div key={assignee._id} className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-full border">
+                                            <div className="h-5 w-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[8px] font-bold">
+                                                {assignee.name.split(' ').map((n: string) => n[0]).join('')}
+                                            </div>
+                                            <span className="text-[11px] font-medium">{assignee.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <Input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="5"
-                                value={progressValue}
-                                onChange={(e) => setProgressValue(parseInt(e.target.value))}
-                                className="h-6 cursor-pointer"
-                            />
+
+                            {/* Progress Stats */}
+                            <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl">
+                                <div>
+                                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Current Progress</span>
+                                    <span className="text-lg font-black text-orange-500">{selectedProjectForProgress.progress}%</span>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Status Line</span>
+                                    <span className="text-sm font-bold">{selectedProjectForProgress.statusLine}</span>
+                                </div>
+                            </div>
+
+                            {/* Tasks Tracking */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-bold uppercase text-muted-foreground">Task Breakdown</Label>
+                                    <Badge variant="outline" className="text-[10px]">{selectedProjectForProgress.tasks?.length || 0} Total</Badge>
+                                </div>
+                                
+                                <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
+                                    {selectedProjectForProgress.tasks?.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground italic text-center py-4 border rounded-xl">No sub-tasks created yet.</p>
+                                    ) : (
+                                        selectedProjectForProgress.tasks?.map((task: any) => (
+                                            <div key={task._id} className={cn(
+                                                "flex items-center gap-3 p-3 rounded-xl border transition-all",
+                                                task.status === 'done' ? "bg-green-500/5 border-green-500/20" : "bg-white border-muted shadow-sm"
+                                            )}>
+                                                <div className={cn(
+                                                    "h-5 w-5 rounded-md border flex items-center justify-center",
+                                                    task.status === 'done' ? "bg-green-500 border-green-500 text-white" : "border-muted-foreground/30"
+                                                )}>
+                                                    {task.status === 'done' && <Check size={14} />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={cn(
+                                                        "text-sm font-bold truncate",
+                                                        task.status === 'done' && "line-through text-muted-foreground"
+                                                    )}>{task.title}</p>
+                                                    <p className="text-[10px] text-muted-foreground">Editor: {task.assignee?.name}</p>
+                                                </div>
+                                                <Badge className={cn(
+                                                    "text-[9px] h-5",
+                                                    task.status === 'done' ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                                                )}>
+                                                    {task.status.toUpperCase()}
+                                                </Badge>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Activity Tracking */}
+                            <div className="space-y-3 border-t pt-4">
+                                <Label className="text-xs font-bold uppercase text-muted-foreground">Production Log</Label>
+                                <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
+                                    {selectedProjectForProgress.activityLog?.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground italic text-center py-4">No activity logged yet</p>
+                                    ) : (
+                                        selectedProjectForProgress.activityLog?.map((log: any) => (
+                                            <div key={log._id} className="flex gap-3">
+                                                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold shrink-0">
+                                                    {log.user?.name.split(' ').map((n: string) => n[0]).join('')}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[11px]">
+                                                        <span className="font-bold">{log.user?.name}</span> {log.details}
+                                                    </p>
+                                                    <p className="text-[9px] text-muted-foreground">{new Date(log.createdAt).toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="status-line" className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Status Line</Label>
-                            <Input
-                                id="status-line"
-                                placeholder="e.g. Exporting draft..."
-                                className="text-sm"
-                                value={progressStatusLine}
-                                onChange={(e) => setProgressStatusLine(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="ghost" size="sm" onClick={() => setIsProgressDialogOpen(false)}>Cancel</Button>
-                        <Button size="sm" onClick={submitProgressUpdate} className="bg-primary hover:bg-primary/90 px-6">Save Updates</Button>
+                    )}
+                    
+                    <DialogFooter className="border-t pt-4">
+                        <Button variant="ghost" size="sm" onClick={() => setIsProgressDialogOpen(false)}>Close Overview</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

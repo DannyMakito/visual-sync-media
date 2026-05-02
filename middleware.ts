@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
 
 const isAdminRoute = createRouteMatcher([
     "/admin(.*)",
+    "/dashboard(.*)",
 ])
 
 const isClientRoute = createRouteMatcher([
@@ -20,45 +21,53 @@ const isEditorRoute = createRouteMatcher([
     "/editor(.*)",
 ])
 
+// Helper to get the correct dashboard URL for a role
+function getDashboardUrl(role: string | undefined): string {
+    switch (role) {
+        case "admin": return "/dashboard"
+        case "client": return "/client/dashboard"
+        case "editor": return "/editor/dashboard"
+        default: return "/dashboard" // fallback — DashboardLayout will handle role check
+    }
+}
+
 export default clerkMiddleware(async (auth, req) => {
     const { userId, sessionClaims } = await auth()
+    const { pathname } = req.nextUrl
+    const role = sessionClaims?.role as string | undefined
 
-    // Allow public routes
+    // --- Signed-in users on public pages: redirect to their dashboard ---
+    if (userId && (pathname === "/" || pathname === "/login" || pathname === "/signup")) {
+        const dashboardUrl = getDashboardUrl(role)
+        return NextResponse.redirect(new URL(dashboardUrl, req.url))
+    }
+
+    // --- Public routes for non-authenticated users ---
     if (isPublicRoute(req)) {
+        // Root page: redirect non-authenticated users to login
+        if (pathname === "/") {
+            return NextResponse.redirect(new URL("/login", req.url))
+        }
         return NextResponse.next()
     }
 
-    // Redirect unauthenticated users to login
+    // --- Redirect unauthenticated users to login ---
     if (!userId) {
         return NextResponse.redirect(new URL("/login", req.url))
     }
 
-    // Get user role from session claims (set by webhook)
-    const role = sessionClaims?.role as string | undefined
-
-    // Role-based access control
-    if (isAdminRoute(req) && role !== "admin") {
-        // Redirect non-admin users trying to access admin routes
-        if (role === "client") {
-            return NextResponse.redirect(new URL("/dashboard", req.url))
+    // --- Role-based access control (only if role is known in claims) ---
+    if (role) {
+        if (isAdminRoute(req) && role !== "admin") {
+            return NextResponse.redirect(new URL(getDashboardUrl(role), req.url))
         }
-        if (role === "editor") {
-            return NextResponse.redirect(new URL("/editor/dashboard", req.url))
-        }
-    }
 
-    if (isEditorRoute(req) && role !== "editor") {
-        // Redirect non-editor users trying to access editor routes
-        if (role === "admin" || role === "client") {
-            return NextResponse.redirect(new URL("/dashboard", req.url))
+        if (isEditorRoute(req) && role !== "editor" && role !== "admin") {
+            return NextResponse.redirect(new URL(getDashboardUrl(role), req.url))
         }
-    }
 
-    // Client routes are accessible by both clients and admins
-    if (isClientRoute(req) && role !== "client" && role !== "admin") {
-        // Redirect editors to their dashboard
-        if (role === "editor") {
-            return NextResponse.redirect(new URL("/editor/dashboard", req.url))
+        if (isClientRoute(req) && role !== "client" && role !== "admin") {
+            return NextResponse.redirect(new URL(getDashboardUrl(role), req.url))
         }
     }
 

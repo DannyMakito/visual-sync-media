@@ -20,6 +20,7 @@ import {
     Film,
     FolderKanban
 } from "lucide-react"
+import { SignOutButton } from "@clerk/nextjs"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -65,12 +66,12 @@ export function EditorSidebar() {
             <SidebarFooter className="border-t border-sidebar-border p-4">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                            <Link href="/login">
+                        <SignOutButton redirectUrl="/login">
+                            <SidebarMenuButton className="text-muted-foreground hover:text-foreground">
                                 <LogOut className="h-4 w-4" />
                                 <span>Log out</span>
-                            </Link>
-                        </SidebarMenuButton>
+                            </SidebarMenuButton>
+                        </SignOutButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>

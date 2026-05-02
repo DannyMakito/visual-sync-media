@@ -89,12 +89,39 @@ export default defineSchema({
         .index("by_clientId", ["clientId"])
         .index("by_status", ["status"]),
 
-    // Messages table - order communications
+    // Messages table - communication portal (contextual)
     messages: defineTable({
-        orderId: v.id("orders"),
+        orderId: v.optional(v.id("orders")),
+        projectId: v.optional(v.id("projects")),
         senderId: v.id("users"),
         content: v.string(),
         createdAt: v.number(),
     })
-        .index("by_orderId", ["orderId"]),
+        .index("by_orderId", ["orderId"])
+        .index("by_projectId", ["projectId"]),
+
+    // Project Tasks - granular tasks within a project
+    tasks: defineTable({
+        projectId: v.id("projects"),
+        title: v.string(),
+        description: v.optional(v.string()),
+        status: v.union(v.literal("todo"), v.literal("in-progress"), v.literal("done")),
+        priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+        dueDate: v.optional(v.string()),
+        assigneeId: v.id("users"),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+        .index("by_projectId", ["projectId"])
+        .index("by_assigneeId", ["assigneeId"]),
+
+    // Activity Log - track changes to projects and tasks
+    activityLog: defineTable({
+        projectId: v.id("projects"),
+        userId: v.id("users"),
+        action: v.string(), // e.g. "created_task", "completed_task", "updated_status"
+        details: v.string(),
+        createdAt: v.number(),
+    })
+        .index("by_projectId", ["projectId"]),
 })

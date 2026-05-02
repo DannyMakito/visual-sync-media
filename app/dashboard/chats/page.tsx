@@ -1,71 +1,100 @@
 "use client"
 
+import { useState } from "react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { Input } from "@/components/ui/input"
-import { Search, Edit, Send, MessageSquare } from "lucide-react"
+import { Search, Edit, MessageSquare } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { getInitials } from "@/lib/utils"
-import { Card } from "@/components/ui/card"
-
-const chats = [
-    { id: 1, name: "Alex John", message: "You: See you later, Alex!", avatar: "/avatars/01.png" },
-    { id: 2, name: "Taylor Grande", message: "Yeah, it's really well-explained. You should give it a try.", avatar: "/avatars/02.png" },
-    { id: 3, name: "John Doe", message: "You: Yep, see ya. 👍", avatar: "/avatars/03.png" },
-    { id: 4, name: "Megan Flux", message: "You: Sure ✌️", avatar: "/avatars/04.png" },
-    { id: 5, name: "David Brown", message: "You: Great, I'll review them now!", avatar: "/avatars/05.png" },
-    { id: 6, name: "Julia Carter", message: "Julia: Thanks!", avatar: "/avatars/06.png" },
-]
+import { getInitials, cn, formatRelativeDate } from "@/lib/utils"
+import { ChatInterface } from "@/components/chat-interface"
 
 export default function ChatsPage() {
+    const conversations = useQuery(api.messages.getConversations) || []
+    const [selectedConvo, setSelectedConvo] = useState<any>(null)
+
     return (
         <div className="flex w-full h-[calc(100vh-10rem)] shadow-sm rounded-lg overflow-hidden border bg-card">
             {/* Sidebar */}
-            <div className="w-80 border-r flex flex-col">
-                <div className="p-4 border-b flex items-center justify-between">
+            <div className="w-80 border-r flex flex-col bg-muted/10">
+                <div className="p-4 border-b flex items-center justify-between bg-background">
                     <h2 className="text-xl font-bold flex items-center gap-2">
-                        Inbox <MessageSquare className="h-5 w-5" />
+                        Inbox <MessageSquare className="h-5 w-5 text-primary" />
                     </h2>
                     <Button variant="ghost" size="icon">
                         <Edit className="h-4 w-4" />
                     </Button>
                 </div>
-                <div className="p-4 border-b">
+                <div className="p-4 border-b bg-background">
                     <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search chat..." className="pl-8 bg-muted/50" />
+                        <Input placeholder="Search chat..." className="pl-8 bg-muted/50 border-none" />
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                    {chats.map((chat) => (
-                        <div
-                            key={chat.id}
-                            className={`p-4 flex items-center gap-3 hover:bg-muted/50 cursor-pointer border-b last:border-0 ${chat.id === 1 ? 'bg-muted/30' : ''}`}
-                        >
-                            <Avatar className="h-10 w-10">
-                                <AvatarImage src={chat.avatar} alt={chat.name} />
-                                <AvatarFallback>{getInitials(chat.name)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 overflow-hidden">
-                                <p className="font-medium text-sm truncate">{chat.name}</p>
-                                <p className="text-xs text-muted-foreground truncate">{chat.message}</p>
-                            </div>
+                    {conversations.length === 0 ? (
+                        <div className="p-10 text-center opacity-50">
+                            <p className="text-xs font-medium">No active chats found.</p>
                         </div>
-                    ))}
+                    ) : (
+                        conversations.map((chat) => (
+                            <div
+                                key={`${chat.type}_${chat.id}`}
+                                onClick={() => setSelectedConvo(chat)}
+                                className={cn(
+                                    "p-4 flex items-center gap-3 hover:bg-muted/50 cursor-pointer border-b transition-colors",
+                                    selectedConvo?.id === chat.id ? "bg-primary/10 border-l-4 border-l-primary" : "border-l-4 border-l-transparent"
+                                )}
+                            >
+                                <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                                    <AvatarImage src={chat.lastSender?.image} />
+                                    <AvatarFallback>{getInitials(chat.title)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 overflow-hidden">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                        <p className="font-bold text-sm truncate">{chat.title}</p>
+                                        <span className="text-[10px] text-muted-foreground">{formatRelativeDate(new Date(chat.lastMessageAt).toISOString())}</span>
+                                    </div>
+                                    <p className="text-[10px] uppercase font-black tracking-tighter text-muted-foreground mb-1">
+                                        {chat.subtitle}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        <span className="font-medium text-foreground/70">
+                                            {chat.lastSender?.name.split(' ')[0]}:
+                                        </span> {chat.lastMessage}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col items-center justify-center bg-muted/5">
-                <div className="text-center max-w-sm">
-                    <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-muted mb-6">
-                        <MessageSquare className="h-10 w-10 text-muted-foreground" />
+            <div className="flex-1 flex flex-col bg-muted/5">
+                {selectedConvo ? (
+                    <div className="h-full p-4">
+                        <ChatInterface 
+                            orderId={selectedConvo.orderId}
+                            projectId={selectedConvo.projectId}
+                            title={selectedConvo.title}
+                        />
                     </div>
-                    <h3 className="text-2xl font-bold mb-2">Your messages</h3>
-                    <p className="text-muted-foreground mb-6">Send a message to start a chat.</p>
-                    <Button size="lg" className="rounded-full shadow-lg">
-                        Send message
-                    </Button>
-                </div>
+                ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                        <div className="text-center max-w-sm">
+                            <div className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-primary/5 mb-6 border-4 border-primary/10 shadow-inner">
+                                <MessageSquare className="h-12 w-12 text-primary/40 animate-pulse" />
+                            </div>
+                            <h3 className="text-2xl font-black tracking-tighter mb-2 italic">Select a conversation</h3>
+                            <p className="text-muted-foreground mb-6 font-medium">Choose a client or editor from the left to start chatting in real-time.</p>
+                            <Button size="lg" className="rounded-full shadow-xl px-10 font-bold transition-all hover:scale-105 active:scale-95 bg-primary">
+                                New Broadcast
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

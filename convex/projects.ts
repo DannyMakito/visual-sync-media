@@ -18,9 +18,17 @@ export const createProject = mutation({
 
         if (!user || user.role !== "admin") throw new Error("Only admin can create projects")
 
+        console.log("createProject mutation started", args)
+        
         const order = await ctx.db.get(args.orderId)
-        if (!order) throw new Error("Order not found")
-        if (order.status !== "quoted") throw new Error("Order must be quoted first")
+        if (!order) {
+            console.error("Order not found", args.orderId)
+            throw new Error("Order not found")
+        }
+        if (order.status !== "quoted") {
+            console.error("Order not in quoted status", order.status)
+            throw new Error("Order must be quoted first")
+        }
 
         const now = Date.now()
         const projectId = await ctx.db.insert("projects", {
@@ -46,6 +54,15 @@ export const createProject = mutation({
             readyForClient: false,
             createdAt: now,
             updatedAt: now,
+        })
+
+        // Log activity
+        await ctx.db.insert("activityLog", {
+            projectId,
+            userId: user._id,
+            action: "created_project",
+            details: `Project created from order: ${order.title}`,
+            createdAt: now,
         })
 
         // Update order status
@@ -94,6 +111,15 @@ export const createInternalProject = mutation({
             updatedAt: now,
         })
 
+        // Log activity
+        await ctx.db.insert("activityLog", {
+            projectId,
+            userId: user._id,
+            action: "created_project",
+            details: `Internal project created: ${args.title}`,
+            createdAt: now,
+        })
+
         return projectId
     },
 })
@@ -122,7 +148,7 @@ export const getEditorProjects = query({
         if (user.role === "editor") {
             const allProjects = await ctx.db.query("projects").collect()
             const assignedProjects = allProjects.filter(p =>
-                p.assigneeIds.some(id => id === user._id)
+                p.assigneeIds.some(id => id.toString() === user._id.toString())
             )
             return await populateProjectData(ctx, assignedProjects)
         }
@@ -159,6 +185,15 @@ export const getActiveProjects = query({
             .filter((q) => q.neq(q.field("status"), "done"))
             .collect()
 
+        return await populateProjectData(ctx, projects)
+    },
+})
+
+// DEBUG QUERY - NO ADMIN CHECK
+export const getAllProjectsDebug = query({
+    args: {},
+    handler: async (ctx) => {
+        const projects = await ctx.db.query("projects").collect()
         return await populateProjectData(ctx, projects)
     },
 })
@@ -288,18 +323,48 @@ export const deleteProject = mutation({
     },
 })
 
-// Helper function to populate project data with related entities
 async function populateProjectData(ctx: any, projects: any[]) {
     return await Promise.all(
         projects.map(async (project) => {
             const client = await ctx.db.get(project.clientId)
+            const order = project.orderId ? await ctx.db.get(project.orderId) : null
             const assignees = await Promise.all(
                 project.assigneeIds.map((id: any) => ctx.db.get(id))
             )
+            
+            // Fetch tasks
+            const tasks = await ctx.db
+                .query("tasks")
+                .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+                .collect()
+                
+            const populatedTasks = await Promise.all(
+                tasks.map(async (task: any) => {
+                    const assignee = await ctx.db.get(task.assigneeId)
+                    return { ...task, assignee, priority: task.priority || "medium" }
+                })
+            )
+
+            // Fetch activity log (latest first)
+            const logs = await ctx.db
+                .query("activityLog")
+                .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+                .collect()
+            
+            const populatedLogs = await Promise.all(
+                logs.sort((a: any, b: any) => b.createdAt - a.createdAt).map(async (log: any) => {
+                    const user = await ctx.db.get(log.userId)
+                    return { ...log, user }
+                })
+            )
+
             return {
                 ...project,
                 client,
+                order,
                 assignees: assignees.filter(Boolean),
+                tasks: populatedTasks,
+                activityLog: populatedLogs
             }
         })
     )

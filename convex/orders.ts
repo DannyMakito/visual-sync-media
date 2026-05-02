@@ -61,6 +61,31 @@ export const getClientOrders = query({
     },
 })
 
+// Get all orders (admin only)
+export const getAllOrders = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) return []
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user || user.role !== "admin") return []
+
+        const orders = await ctx.db.query("orders").collect()
+
+        return await Promise.all(
+            orders.map(async (order) => {
+                const client = await ctx.db.get(order.clientId)
+                return { ...order, client }
+            })
+        )
+    },
+})
+
 // Get all orders awaiting quote (admin only)
 export const getPendingOrders = query({
     args: {},
@@ -73,7 +98,12 @@ export const getPendingOrders = query({
             .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
             .unique()
 
-        if (!user || user.role !== "admin") return []
+        // If user is not an admin, we return a special object or empty array
+        // but for debugging let's at least log or check
+        if (!user || user.role !== "admin") {
+            console.log("Access denied to getPendingOrders: user is not admin", user?.role)
+            return []
+        }
 
         const orders = await ctx.db
             .query("orders")

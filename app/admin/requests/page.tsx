@@ -11,11 +11,21 @@ import { api } from "@/convex/_generated/api"
 import { formatDate } from "@/lib/order-service"
 
 export default function AdminRequestsPage() {
+    const user = useQuery(api.users.getCurrentUser)
     const orders = useQuery(api.orders.getPendingOrders)
+    const allOrders = useQuery(api.orders.getAllOrders)
 
-    if (orders === undefined) {
+    if (orders === undefined || user === undefined) {
         return <div className="text-center py-8">Loading incoming requests...</div>
     }
+
+    // Debug info (remove later)
+    console.log("AdminRequestsPage Debug:", {
+        userRole: user?.role,
+        pendingOrdersCount: orders?.length,
+        allOrdersCount: allOrders?.length,
+        hasIdentity: !!user
+    })
 
     return (
         <div className="space-y-6">
@@ -101,10 +111,10 @@ export default function AdminRequestsPage() {
                                                     CLIENT
                                                 </p>
                                                 <p className="text-sm font-medium">
-                                                    {order.client?.name || order.clientName}
+                                                    {order.client?.name || order.clientName || "Unknown Client"}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {order.client?.email || order.clientEmail}
+                                                    {order.client?.email || order.clientEmail || "No Email"}
                                                 </p>
                                             </div>
                                             <div>
@@ -153,14 +163,39 @@ export default function AdminRequestsPage() {
                         </Card>
                     ))}
                 </div>
+            ) : allOrders && allOrders.length > 0 ? (
+                <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
+                        <p className="font-bold mb-1">Debug Info:</p>
+                        <p>No orders are currently in &quot;awaiting-quote&quot; status, but {allOrders.length} orders were found in the database. Showing them below with their current status.</p>
+                    </div>
+                    <div className="grid gap-4">
+                        {allOrders.map((order) => (
+                            <Card key={order._id} className="opacity-80">
+                                <CardContent className="p-4">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <h3 className="font-semibold">{order.title}</h3>
+                                            <p className="text-sm text-muted-foreground">{order.client?.name || "Unknown Client"} • {order.service}</p>
+                                        </div>
+                                        <Badge variant="outline" className="capitalize">{order.status.replace(/-/g, " ")}</Badge>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
             ) : (
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12">
                         <Inbox className="h-12 w-12 text-muted-foreground mb-4" />
                         <h3 className="text-lg font-semibold mb-2">No Incoming Requests</h3>
                         <p className="text-muted-foreground text-center">
-                            All client orders have been quoted. Check back later for new requests.
+                            No orders were found in the database.
                         </p>
+                        <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-500">
+                            Current Role: <span className="font-bold">{user?.role || "Unknown"}</span>
+                        </div>
                     </CardContent>
                 </Card>
             )}

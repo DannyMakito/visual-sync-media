@@ -1,8 +1,36 @@
+"use client"
+
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, Clock, AlertCircle, Play } from "lucide-react"
+import { formatRelativeDate } from "@/lib/utils"
 
 export default function EditorDashboardPage() {
+    const tasks = useQuery(api.tasks.getEditorTasks) || []
+    const projects = useQuery(api.projects.getEditorProjects) || []
+
+    // Calculate stats
+    const inProgressTasks = tasks.filter(t => t.status === "in-progress").length
+    const completedTasks = tasks.filter(t => t.status === "done").length
+    
+    // For "Pending Review", we'll check projects assigned to the editor that are in review status
+    const inReviewProjects = projects.filter(p => p.status === "in-review").length
+    
+    // Urgent tasks (High priority)
+    const urgentTasksCount = tasks.filter(t => t.priority === "high" && t.status !== "done").length
+
+    // Active assignments list (Tasks)
+    const activeAssignments = tasks
+        .filter(t => t.status !== "done")
+        .sort((a, b) => {
+            // Sort by priority (high first)
+            const priorityMap = { high: 0, medium: 1, low: 2 }
+            return priorityMap[a.priority as keyof typeof priorityMap] - priorityMap[b.priority as keyof typeof priorityMap]
+        })
+        .slice(0, 5) // Just show top 5
+
     return (
         <div className="space-y-6">
             <div>
@@ -17,7 +45,7 @@ export default function EditorDashboardPage() {
                         <Play className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">5</div>
+                        <div className="text-2xl font-bold">{inProgressTasks}</div>
                         <p className="text-xs text-muted-foreground">Active tasks</p>
                     </CardContent>
                 </Card>
@@ -28,7 +56,7 @@ export default function EditorDashboardPage() {
                         <Clock className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">3</div>
+                        <div className="text-2xl font-bold">{inReviewProjects}</div>
                         <p className="text-xs text-muted-foreground">Awaiting approval</p>
                     </CardContent>
                 </Card>
@@ -39,8 +67,8 @@ export default function EditorDashboardPage() {
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">28</div>
-                        <p className="text-xs text-muted-foreground">This month</p>
+                        <div className="text-2xl font-bold">{completedTasks}</div>
+                        <p className="text-xs text-muted-foreground">Total finished tasks</p>
                     </CardContent>
                 </Card>
 
@@ -50,8 +78,8 @@ export default function EditorDashboardPage() {
                         <AlertCircle className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">2</div>
-                        <p className="text-xs text-muted-foreground">Due today</p>
+                        <div className="text-2xl font-bold">{urgentTasksCount}</div>
+                        <p className="text-xs text-muted-foreground">High priority active</p>
                     </CardContent>
                 </Card>
             </div>
@@ -63,25 +91,31 @@ export default function EditorDashboardPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {[
-                            { title: "Acme Corp Brand Video - Edit V2", priority: "High", due: "Today", status: "In Progress" },
-                            { title: "TechStart Social Media Clips", priority: "Medium", due: "Tomorrow", status: "In Progress" },
-                            { title: "FreshFood Product Shots", priority: "Low", due: "Feb 10", status: "Pending" },
-                            { title: "BigBank Training Module 3", priority: "High", due: "Feb 12", status: "Review" },
-                        ].map((task, i) => (
-                            <div key={i} className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0">
-                                <div className="space-y-1">
-                                    <p className="font-medium">{task.title}</p>
-                                    <p className="text-sm text-muted-foreground">Due: {task.due}</p>
+                        {activeAssignments.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-4 text-center">No active assignments. Great job!</p>
+                        ) : (
+                            activeAssignments.map((task, i) => (
+                                <div key={task._id} className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0">
+                                    <div className="space-y-1">
+                                        <p className="font-medium">{task.title}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">{task.projectName}</p>
+                                            {task.dueDate && (
+                                                <p className="text-xs text-muted-foreground">• Due: {formatRelativeDate(task.dueDate)}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}>
+                                            {task.priority.toUpperCase()}
+                                        </Badge>
+                                        <Badge variant="outline" className="uppercase text-[10px]">
+                                            {task.status.replace('-', ' ')}
+                                        </Badge>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant={task.priority === "High" ? "destructive" : task.priority === "Medium" ? "default" : "secondary"}>
-                                        {task.priority}
-                                    </Badge>
-                                    <Badge variant="outline">{task.status}</Badge>
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </CardContent>
             </Card>

@@ -17,7 +17,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { useAuth } from "@/hooks/use-auth"
-import { getEditorProjects, Project, updateProject, updateProjectStatus, addProjectNote } from "@/lib/project-service"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 import { formatDate } from "@/lib/order-service"
 import { toast } from "sonner"
 import {
@@ -31,9 +33,14 @@ import {
     FolderOpen,
     MessageSquare,
     ChevronRight,
-    User
+    User,
+    Monitor,
+    Smartphone,
+    Check,
+    Plus
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatRelativeDate } from "@/lib/utils"
+import { ChatInterface } from "@/components/chat-interface"
 
 const statusConfig = {
     "todo": { label: "To Do", icon: Clock, color: "bg-gray-500", badgeVariant: "secondary" as const },
@@ -42,13 +49,19 @@ const statusConfig = {
     "done": { label: "Completed", icon: CheckCircle2, color: "bg-green-500", badgeVariant: "outline" as const },
 }
 
-const statusFlow: Project["status"][] = ["todo", "in-progress", "in-review", "done"]
+const statusFlow = ["todo", "in-progress", "in-review", "done"] as const
 
 export default function EditorProjectsPage() {
     const { user } = useAuth()
-    const [projects, setProjects] = useState<Project[]>([])
-    const [isClient, setIsClient] = useState(false)
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+    const projects = useQuery(api.projects.getEditorProjects) || []
+    
+    // Mutations
+    const updateProjectMutation = useMutation(api.projects.updateProject)
+    const addProjectNoteMutation = useMutation(api.projects.addProjectNote)
+    const createTaskMutation = useMutation(api.tasks.createTask)
+    const updateTaskStatusMutation = useMutation(api.tasks.updateTaskStatus)
+
+    const [selectedProject, setSelectedProject] = useState<any | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     
     // Progress update state
@@ -58,46 +71,39 @@ export default function EditorProjectsPage() {
     // Note state
     const [newNote, setNewNote] = useState("")
 
-    useEffect(() => {
-        setIsClient(true)
-    }, [])
-
-    useEffect(() => {
-        if (!isClient || !user?.id) return
-        // For demo, we'll use a mock editor ID - in real app, this would come from user.id
-        const editorId = user.id || "e1"
-        setProjects(getEditorProjects(editorId))
-    }, [isClient, user])
-
-    const handleOpenDetail = (project: Project) => {
+    const handleOpenDetail = (project: any) => {
         setSelectedProject(project)
         setProgressValue(project.progress)
         setStatusLine(project.statusLine || "")
         setIsDetailOpen(true)
     }
 
-    const handleUpdateProgress = () => {
+    const handleUpdateProgress = async () => {
         if (!selectedProject) return
         
-        const updated = updateProject(selectedProject.id, {
-            progress: progressValue,
-            statusLine: statusLine
-        })
-        
-        if (updated) {
-            setProjects(prev => prev.map(p => p.id === selectedProject.id ? updated : p))
-            setSelectedProject(updated)
+        try {
+            await updateProjectMutation({
+                projectId: selectedProject._id,
+                progress: progressValue,
+                statusLine: statusLine
+            })
             toast.success("Progress updated successfully")
+        } catch (error) {
+            console.error(error)
+            toast.error("Failed to update progress")
         }
     }
 
-    const handleStatusAdvance = () => {
+    const handleStatusAdvance = async () => {
         if (!selectedProject) return
         
-        const currentIndex = statusFlow.indexOf(selectedProject.status)
+        const currentIndex = statusFlow.indexOf(selectedProject.status as any)
         if (currentIndex < statusFlow.length - 1) {
             const nextStatus = statusFlow[currentIndex + 1]
-            const updates: Partial<Project> = { status: nextStatus }
+            const updates: any = { 
+                projectId: selectedProject._id,
+                status: nextStatus 
+            }
             
             if (nextStatus === "done") {
                 updates.progress = 100
@@ -106,41 +112,54 @@ export default function EditorProjectsPage() {
                 updates.statusLine = "Ready for Review"
             }
             
-            const updated = updateProject(selectedProject.id, updates)
-            if (updated) {
-                setProjects(prev => prev.map(p => p.id === selectedProject.id ? updated : p))
-                setSelectedProject(updated)
+            try {
+                await updateProjectMutation(updates)
                 toast.success(`Status updated to ${statusConfig[nextStatus].label}`)
+                // Update local selection if dialog is open
+                setSelectedProject((prev: any) => ({ ...prev, ...updates }))
+            } catch (error) {
+                console.error(error)
+                toast.error("Failed to update status")
             }
         }
     }
 
-    const handleAddNote = () => {
+    const handleAddNote = async () => {
         if (!selectedProject || !newNote.trim()) return
         
-        const updated = addProjectNote(selectedProject.id, newNote)
-        if (updated) {
-            setProjects(prev => prev.map(p => p.id === selectedProject.id ? updated : p))
-            setSelectedProject(updated)
+        try {
+            await addProjectNoteMutation({
+                projectId: selectedProject._id,
+                note: newNote
+            })
             setNewNote("")
             toast.success("Note added")
+        } catch (error) {
+            console.error(error)
+            toast.error("Failed to add note")
         }
     }
 
-    const handleWorkingDriveUpdate = (link: string) => {
+    const handleWorkingDriveUpdate = async (link: string) => {
         if (!selectedProject) return
         
-        const updated = updateProject(selectedProject.id, {
-            driveLinks: { ...selectedProject.driveLinks, working: link }
-        })
-        
-        if (updated) {
-            setProjects(prev => prev.map(p => p.id === selectedProject.id ? updated : p))
-            setSelectedProject(updated)
+        try {
+            await updateProjectMutation({
+                projectId: selectedProject._id,
+                driveLinks: { ...selectedProject.driveLinks, working: link }
+            })
+            // Update local selection for immediate feedback
+            setSelectedProject((prev: any) => ({
+                ...prev,
+                driveLinks: { ...prev.driveLinks, working: link }
+            }))
+        } catch (error) {
+            console.error(error)
+            toast.error("Failed to update link")
         }
     }
 
-    if (!isClient) {
+    if (projects === undefined) {
         return <div className="text-center py-8">Loading projects...</div>
     }
 
@@ -174,12 +193,12 @@ export default function EditorProjectsPage() {
 
             {/* Projects Grid */}
             <div className="grid gap-4">
-                {projects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(project => {
-                    const config = statusConfig[project.status]
+                {[...projects].sort((a: any, b: any) => b.createdAt - a.createdAt).map((project: any) => {
+                    const config = statusConfig[project.status as keyof typeof statusConfig]
                     const StatusIcon = config.icon
 
                     return (
-                        <Card key={project.id} className="hover:shadow-md transition-shadow">
+                        <Card key={project._id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-6">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1 min-w-0">
@@ -198,7 +217,7 @@ export default function EditorProjectsPage() {
                                         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                                             <div className="flex items-center gap-1">
                                                 <User className="h-4 w-4" />
-                                                <span>{project.clientName}</span>
+                                                <span>{project.client?.name || 'Unknown Client'}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Clock className="h-4 w-4" />
@@ -242,47 +261,112 @@ export default function EditorProjectsPage() {
                     <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <div className="flex items-center gap-3">
-                                <Badge className={cn("text-white", statusConfig[selectedProject.status].color)}>
-                                    {statusConfig[selectedProject.status].label}
+                                <Badge className={cn("text-white", statusConfig[selectedProject.status as keyof typeof statusConfig].color)}>
+                                    {statusConfig[selectedProject.status as keyof typeof statusConfig].label}
                                 </Badge>
                             </div>
                             <DialogTitle className="text-xl">{selectedProject.title}</DialogTitle>
                             <DialogDescription>
-                                Client: {selectedProject.clientName} • Service: {selectedProject.service}
+                                Client: {selectedProject.client?.name || 'Unknown'} • Service: {selectedProject.order?.service || 'Custom Project'}
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-6 py-4">
-                            {/* Project Info */}
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span className="text-muted-foreground">Deal Value:</span>
-                                    <span className="ml-2 font-semibold text-green-600">${selectedProject.dealValue}</span>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground">Due Date:</span>
-                                    <span className="ml-2">{selectedProject.dueDate ? formatDate(selectedProject.dueDate) : 'N/A'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground">Media Specs:</span>
-                                    <span className="ml-2">{selectedProject.mediaSpecs.duration} • {selectedProject.mediaSpecs.ratio}</span>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground">Created:</span>
-                                    <span className="ml-2">{formatDate(selectedProject.createdAt)}</span>
+                            {/* Team & Collaboration */}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase text-muted-foreground">Assigned Team</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedProject.assignees?.map((assignee: any) => (
+                                        <div key={assignee._id} className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-full border">
+                                            <div className="h-6 w-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold">
+                                                {assignee.name.split(' ').map((n: string) => n[0]).join('')}
+                                            </div>
+                                            <span className="text-xs font-medium">
+                                                {assignee.name} {assignee._id === user?.id && "(You)"}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 
-                            {/* Description */}
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground">Project Description</Label>
-                                <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
-                                    {selectedProject.description}
-                                </p>
+                            {/* Project Info */}
+                            <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-xl">
+                                <div>
+                                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Deal Value</span>
+                                    <span className="font-semibold text-green-600">${selectedProject.dealValue}</span>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Due Date</span>
+                                    <span>{selectedProject.dueDate ? formatDate(selectedProject.dueDate) : 'N/A'}</span>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Media Specs</span>
+                                    <span>{selectedProject.mediaSpecs?.duration} • {selectedProject.mediaSpecs?.ratio}</span>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Progress</span>
+                                    <span className="font-bold text-orange-500">{selectedProject.progress}%</span>
+                                </div>
+                            </div>
+
+                            {/* Tasks Section */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-bold uppercase text-muted-foreground">Project Tasks</Label>
+                                    <Badge variant="outline" className="text-[10px]">{selectedProject.tasks?.length || 0} Total</Badge>
+                                </div>
+                                
+                                <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
+                                    {selectedProject.tasks?.length === 0 ? (
+                                        <div className="text-center py-6 border-2 border-dashed rounded-xl bg-muted/10">
+                                            <p className="text-xs text-muted-foreground italic">No tasks created yet</p>
+                                        </div>
+                                    ) : (
+                                        selectedProject.tasks?.map((task: any) => (
+                                            <div key={task._id} className={cn(
+                                                "flex items-center gap-3 p-3 rounded-xl border transition-all",
+                                                task.status === 'done' ? "bg-green-500/5 border-green-500/20" : "bg-white border-muted shadow-sm"
+                                            )}>
+                                                <button 
+                                                    onClick={() => {
+                                                        const nextStatus = task.status === 'done' ? 'todo' : 'done';
+                                                        updateTaskStatusMutation({ taskId: task._id, status: nextStatus as any });
+                                                    }}
+                                                    className={cn(
+                                                        "h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
+                                                        task.status === 'done' ? "bg-green-500 border-green-500 text-white" : "border-muted-foreground/30 hover:border-green-500"
+                                                    )}
+                                                >
+                                                    {task.status === 'done' && <Check size={14} />}
+                                                </button>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={cn(
+                                                        "text-sm font-bold truncate",
+                                                        task.status === 'done' && "line-through text-muted-foreground"
+                                                    )}>{task.title}</p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <Badge variant="outline" className="text-[8px] h-4 uppercase px-1">
+                                                            {task.priority}
+                                                        </Badge>
+                                                        {task.dueDate && (
+                                                            <span className="text-[9px] text-muted-foreground">Due: {formatRelativeDate(task.dueDate)}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Badge className={cn(
+                                                    "text-[9px] h-5",
+                                                    task.status === 'done' ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                                                )}>
+                                                    {task.status.toUpperCase()}
+                                                </Badge>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </div>
 
                             {/* Drive Links */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4 border-t pt-4">
                                 <div className="space-y-2">
                                     <Label className="text-xs font-bold uppercase text-muted-foreground">Raw Assets</Label>
                                     {selectedProject.driveLinks.raw ? (
@@ -290,128 +374,70 @@ export default function EditorProjectsPage() {
                                             href={selectedProject.driveLinks.raw} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                            className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-medium"
                                         >
                                             <FolderOpen className="h-4 w-4" />
                                             Open Raw Assets
                                         </a>
                                     ) : (
-                                        <span className="text-sm text-muted-foreground">No link provided</span>
+                                        <span className="text-xs text-muted-foreground">No link provided</span>
                                     )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-xs font-bold uppercase text-muted-foreground">Working Files</Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            placeholder="Paste working drive link..."
-                                            value={selectedProject.driveLinks.working}
-                                            onChange={(e) => handleWorkingDriveUpdate(e.target.value)}
-                                            className="text-sm h-8"
-                                        />
-                                    </div>
+                                    <Input
+                                        placeholder="Paste working drive link..."
+                                        value={selectedProject.driveLinks.working}
+                                        onChange={(e) => handleWorkingDriveUpdate(e.target.value)}
+                                        className="text-xs h-8"
+                                    />
                                 </div>
                             </div>
 
-                            {/* Progress Update */}
-                            <div className="space-y-4 border-t pt-4">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground">Update Progress</Label>
-                                
-                                <div className="space-y-3">
-                                    <div className="flex justify-between text-sm">
-                                        <span>Completion: {progressValue}%</span>
-                                    </div>
-                                    <Input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        step="5"
-                                        value={progressValue}
-                                        onChange={(e) => setProgressValue(parseInt(e.target.value))}
-                                        className="h-6 cursor-pointer"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label className="text-xs text-muted-foreground">Status Message</Label>
-                                    <Input
-                                        placeholder="e.g. Editing intro section..."
-                                        value={statusLine}
-                                        onChange={(e) => setStatusLine(e.target.value)}
-                                        className="text-sm"
-                                    />
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <Button 
-                                        onClick={handleUpdateProgress}
-                                        variant="outline"
-                                        className="flex-1"
-                                    >
-                                        <RotateCcw className="mr-2 h-4 w-4" />
-                                        Save Progress
-                                    </Button>
-                                    
-                                    {selectedProject.status !== "done" && (
-                                        <Button 
-                                            onClick={handleStatusAdvance}
-                                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-                                        >
-                                            {selectedProject.status === "in-review" ? (
-                                                <>
-                                                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                    Mark Complete
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <ChevronRight className="mr-2 h-4 w-4" />
-                                                    Advance to {statusConfig[statusFlow[statusFlow.indexOf(selectedProject.status) + 1]]?.label}
-                                                </>
-                                            )}
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Internal Notes */}
+                            {/* Activity Log */}
                             <div className="space-y-3 border-t pt-4">
-                                <Label className="text-xs font-bold uppercase text-muted-foreground">Internal Notes</Label>
-                                
-                                <div className="space-y-2 max-h-[150px] overflow-y-auto">
-                                    {selectedProject.internalNotes.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground italic">No notes yet</p>
-                                    ) : (
-                                        selectedProject.internalNotes.map((note, idx) => (
-                                            <div key={idx} className="bg-muted/30 p-2 rounded text-sm">
-                                                {note}
+                                <Label className="text-xs font-bold uppercase text-muted-foreground">Activity History</Label>
+                                <div className="space-y-3 max-h-[150px] overflow-y-auto pr-2">
+                                    {selectedProject.activityLog?.map((log: any) => (
+                                        <div key={log._id} className="flex gap-3">
+                                            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold shrink-0">
+                                                {log.user?.name.split(' ').map((n: string) => n[0]).join('')}
                                             </div>
-                                        ))
-                                    )}
+                                            <div className="min-w-0">
+                                                <p className="text-[11px]">
+                                                    <span className="font-bold">{log.user?.name}</span> {log.details}
+                                                </p>
+                                                <p className="text-[9px] text-muted-foreground">{new Date(log.createdAt).toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
+                            </div>
 
-                                <div className="flex gap-2">
-                                    <Textarea
-                                        placeholder="Add a note..."
-                                        value={newNote}
-                                        onChange={(e) => setNewNote(e.target.value)}
-                                        className="text-sm min-h-[60px]"
-                                    />
-                                    <Button 
-                                        onClick={handleAddNote}
-                                        disabled={!newNote.trim()}
-                                        size="sm"
-                                        className="shrink-0 h-auto"
-                                    >
-                                        <Send className="h-4 w-4 mr-1" />
-                                        Send
-                                    </Button>
-                                </div>
+                            {/* Collaboration Chat */}
+                            <div className="space-y-3 border-t pt-4 h-[300px]">
+                                <Label className="text-xs font-bold uppercase text-muted-foreground">Collaboration Chat</Label>
+                                <ChatInterface 
+                                    projectId={selectedProject._id}
+                                    title="Team Chat"
+                                    showHead={false}
+                                />
                             </div>
                         </div>
 
-                        <DialogFooter>
-                            <Button variant="ghost" onClick={() => setIsDetailOpen(false)}>
-                                Close
-                            </Button>
+                        <DialogFooter className="border-t pt-4">
+                            <div className="flex-1 flex justify-start">
+                                {selectedProject.status !== "done" && (
+                                    <Button 
+                                        onClick={handleStatusAdvance}
+                                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6"
+                                        size="sm"
+                                    >
+                                        {selectedProject.status === "in-review" ? "MARK COMPLETE" : `ADVANCE TO ${statusFlow[statusFlow.indexOf(selectedProject.status as any) + 1]?.toUpperCase()}`}
+                                    </Button>
+                                )}
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => setIsDetailOpen(false)}>Close</Button>
                         </DialogFooter>
                     </DialogContent>
                 )}
