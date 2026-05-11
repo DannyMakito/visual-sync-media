@@ -107,7 +107,7 @@ interface SidebarData {
 }
 
 // Menu items for Admin
-const adminNav = [
+const adminNav: NavGroup[] = [
     {
         title: "General",
         items: [
@@ -200,7 +200,7 @@ const adminNav = [
 ]
 
 // Menu items for Client
-const clientNav = [
+const clientNav: NavGroup[] = [
     {
         title: "Navigation",
         items: [
@@ -241,7 +241,7 @@ const clientNav = [
 ]
 
 // Menu items for Editor
-const editorNav = [
+const editorNav: NavGroup[] = [
     {
         title: "Content",
         items: [
