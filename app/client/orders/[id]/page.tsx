@@ -157,7 +157,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <p className="text-sm font-semibold text-muted-foreground mb-2">
                                         PROJECT HEADLINE
                                     </p>
-                                    <p className="text-base">{order.projectHeadline}</p>
+                                    <p className="text-base">{order.title}</p>
                                 </div>
                             </div>
 
