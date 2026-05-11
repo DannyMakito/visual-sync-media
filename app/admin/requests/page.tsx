@@ -111,10 +111,10 @@ export default function AdminRequestsPage() {
                                                     CLIENT
                                                 </p>
                                                 <p className="text-sm font-medium">
-                                                    {order.client?.name || order.clientName || "Unknown Client"}
+                                                    {order.client?.name || "Unknown Client"}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {order.client?.email || order.clientEmail || "No Email"}
+                                                    {order.client?.email || "No Email"}
                                                 </p>
                                             </div>
                                             <div>
