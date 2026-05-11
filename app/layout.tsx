@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Universal Media Co Portal",
-  description: "Multi-role management portal",
+  title: "Visual Sync Media Portal",
+  description: "Visual Sync Media multi-role management portal",
 };
 
 export default function RootLayout({

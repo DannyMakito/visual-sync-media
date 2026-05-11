@@ -54,7 +54,14 @@ export default function ChatsPage() {
                                 <div className="flex-1 overflow-hidden">
                                     <div className="flex items-center justify-between mb-0.5">
                                         <p className="font-bold text-sm truncate">{chat.title}</p>
-                                        <span className="text-[10px] text-muted-foreground">{formatRelativeDate(new Date(chat.lastMessageAt).toISOString())}</span>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="text-[10px] text-muted-foreground">{formatRelativeDate(new Date(chat.lastMessageAt).toISOString())}</span>
+                                            {chat.unreadCount > 0 && (
+                                                <span className="h-4 min-w-[1rem] px-1 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center animate-in zoom-in duration-300">
+                                                    {chat.unreadCount}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <p className="text-[10px] uppercase font-black tracking-tighter text-muted-foreground mb-1">
                                         {chat.subtitle}

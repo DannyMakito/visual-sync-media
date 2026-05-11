@@ -2,6 +2,8 @@
 "use client"
 
 import { useState } from "react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -30,7 +32,8 @@ import {
     Sparkles,
     Briefcase
 } from "lucide-react"
-import { getInitials } from "@/lib/utils"
+import { getInitials, formatRelativeDate } from "@/lib/utils"
+import { ChatInterface } from "@/components/chat-interface"
 import { toast } from "sonner"
 import {
     Dialog,
@@ -269,8 +272,12 @@ const calendarEvents = [
 ]
 
 export default function DashboardPage() {
+    const stats = useQuery(api.admin.getDashboardStats)
+    const liveProjects = useQuery(api.admin.getDashboardProjects) || []
+    const pendingOrders = useQuery(api.orders.getPendingOrders) || []
+    
     const [forwardingRequest, setForwardingRequest] = useState<any>(null)
-    const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null)
+    const [selectedProject, setSelectedProject] = useState<any>(null)
 
     const handleAssign = (editor: any) => {
         toast.success(`Forwarded "${forwardingRequest.request}" to ${editor.name} `)
@@ -330,7 +337,7 @@ export default function DashboardPage() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <KPICard
                             title="Videos Produced"
-                            value="158"
+                            value={stats?.totalProduced?.toString() || "0"}
                             change="+3.2%"
                             trend="up"
                             icon={<Video className="h-4 w-4 text-purple-500" />}
@@ -338,7 +345,7 @@ export default function DashboardPage() {
                         />
                         <KPICard
                             title="On-Time Delivery"
-                            value="89%"
+                            value={`${stats?.onTimeDelivery || 0}%`}
                             change="+6.5%"
                             trend="up"
                             icon={<CheckCircle2 className="h-4 w-4 text-green-500" />}
@@ -352,7 +359,7 @@ export default function DashboardPage() {
                                         <Clock className="h-4 w-4 text-orange-500" />
                                     </div>
                                     <div className="flex items-end justify-between">
-                                        <div className="text-3xl font-bold">7</div>
+                                        <div className="text-3xl font-bold">{stats?.pendingApprovals || 0}</div>
                                         <div className="flex -space-x-2">
                                             {[1, 2, 3].map((i) => (
                                                 <Avatar key={i} className="h-8 w-8 border-2 border-background">
@@ -401,13 +408,27 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="space-y-4">
-                                {projectsData.map((project) => (
-                                    <ProjectCard
-                                        key={project.id}
-                                        {...project}
-                                        onClick={() => setSelectedProject(project)}
-                                    />
-                                ))}
+                                {liveProjects.length === 0 ? (
+                                    <div className="p-12 text-center border-2 border-dashed rounded-2xl opacity-50">
+                                        <p className="font-medium">No active projects in queue.</p>
+                                    </div>
+                                ) : (
+                                    liveProjects.map((project: any) => (
+                                        <ProjectCard
+                                            key={project._id}
+                                            id={project._id}
+                                            title={project.title}
+                                            project={project.clientName}
+                                            time={new Date(project.createdAt).toLocaleDateString()}
+                                            priority="Medium"
+                                            status={project.status}
+                                            comments={0}
+                                            attachments={0}
+                                            assignees={project.assigneeDetails.map((a: any) => a.image || "")}
+                                            onClick={() => setSelectedProject(project)}
+                                        />
+                                    ))
+                                )}
                             </div>
                         </div>
 
@@ -446,34 +467,29 @@ export default function DashboardPage() {
                             {/* Incoming Requests (Admin Triage) */}
                             <Card className="rounded-2xl border-none shadow-none bg-transparent">
                                 <div className="flex items-center justify-between mb-4 px-4">
-                                    <h3 className="text-lg font-semibold">Notifications</h3>
-                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">3 New</Badge>
+                                    <h3 className="text-lg font-semibold">Incoming Requests</h3>
+                                    {stats?.awaitingQuotes && stats.awaitingQuotes > 0 ? (
+                                        <Badge variant="secondary" className="bg-blue-100 text-blue-700">{stats.awaitingQuotes} New</Badge>
+                                    ) : null}
                                 </div>
                                 <div className="bg-card rounded-2xl border p-5 space-y-6">
-                                    <RequestItem
-                                        client="LumenForge"
-                                        request="Status Update Check"
-                                        time="10m ago"
-                                        details="Client asking for timeline on 'Review final UI assets'"
-                                        priority="medium"
-                                        onForward={() => setForwardingRequest({ client: "LumenForge", request: "Status Update Check" })}
-                                    />
-                                    <RequestItem
-                                        client="NebulaCart"
-                                        request="Revision Request"
-                                        time="1h ago"
-                                        details="New assets uploaded for 'Integration pages' copy."
-                                        priority="high"
-                                        onForward={() => setForwardingRequest({ client: "NebulaCart", request: "Revision Request" })}
-                                    />
-                                    <RequestItem
-                                        client="EchoSuite"
-                                        request="General Inquiry"
-                                        time="3h ago"
-                                        details="Question about billing for next milestone."
-                                        priority="low"
-                                        onForward={() => setForwardingRequest({ client: "EchoSuite", request: "General Inquiry" })}
-                                    />
+                                    {pendingOrders.length === 0 ? (
+                                        <div className="py-4 text-center opacity-50">
+                                            <p className="text-xs">No new requests</p>
+                                        </div>
+                                    ) : (
+                                        pendingOrders.slice(0, 3).map((order: any) => (
+                                            <RequestItem
+                                                key={order._id}
+                                                client={order.client?.name || "Unknown"}
+                                                request={order.title}
+                                                time={formatRelativeDate(new Date(order.createdAt).toISOString())}
+                                                details={order.requirements}
+                                                priority="high"
+                                                onForward={() => setForwardingRequest({ client: order.client?.name, request: order.title })}
+                                            />
+                                        ))
+                                    )}
                                 </div>
                             </Card>
                         </div>
@@ -722,57 +738,22 @@ export default function DashboardPage() {
                 <DialogContent className="sm:max-w-[600px] flex flex-col h-[80vh] p-0 gap-0">
                     <DialogHeader className="p-6 border-b">
                         <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline">{selectedProject?.project}</Badge>
+                            <Badge variant="outline">{selectedProject?.project || selectedProject?.clientName}</Badge>
                             <span className="text-xs text-muted-foreground">{selectedProject?.time}</span>
                         </div>
                         <DialogTitle className="text-xl leading-normal">{selectedProject?.title}</DialogTitle>
                         <DialogDescription>
-                            Managed by {selectedProject?.assignees.length} team members
+                            Managed by {selectedProject?.assigneeDetails?.length || 0} team members
                         </DialogDescription>
                     </DialogHeader>
 
-                    <ScrollArea className="flex-1 p-6">
-                        <div className="space-y-6">
-                            {selectedProject?.thread.length === 0 ? (
-                                <div className="text-center text-muted-foreground py-10">
-                                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                                    <p>No messages yet in this thread.</p>
-                                </div>
-                            ) : (
-                                selectedProject?.thread.map((msg) => (
-                                    <div key={msg.id} className={`flex gap-3 ${msg.sender.role === 'admin' ? 'flex-row-reverse' : ''}`}>
-                                        <Avatar className="h-8 w-8 mt-1">
-                                            <AvatarImage src={msg.sender.avatar} />
-                                            <AvatarFallback>{msg.sender.name[0]}</AvatarFallback>
-                                        </Avatar>
-                                        <div className={`space-y-1 max-w-[80%] ${msg.sender.role === 'admin' ? 'text-right' : ''}`}>
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                <span className="font-medium text-foreground">{msg.sender.name}</span>
-                                                <span>•</span>
-                                                <span>{msg.time}</span>
-                                            </div>
-                                            <div className={`p-3 rounded-2xl text-sm ${msg.sender.role === 'admin'
-                                                ? 'bg-primary text-primary-foreground rounded-tr-none'
-                                                : msg.sender.role === 'client'
-                                                    ? 'bg-blue-100 text-blue-900 border-blue-200 border rounded-tl-none dark:bg-blue-900/40 dark:text-blue-100 dark:border-blue-800'
-                                                    : 'bg-muted rounded-tl-none'
-                                                }`}>
-                                                {msg.content}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </ScrollArea>
-
-                    <div className="p-4 border-t bg-background mt-auto">
-                        <div className="flex gap-2">
-                            <Input placeholder="Type your reply..." />
-                            <Button size="icon">
-                                <Forward className="w-4 h-4" />
-                            </Button>
-                        </div>
+                    <div className="flex-1 overflow-hidden p-4">
+                        <ChatInterface 
+                            projectId={selectedProject?._id}
+                            orderId={selectedProject?.orderId}
+                            title={selectedProject?.title}
+                            showHead={false}
+                        />
                     </div>
                 </DialogContent>
             </Dialog>
