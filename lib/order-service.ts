@@ -114,8 +114,8 @@ export function createMessage(messageData: Omit<Message, "id" | "createdAt">): M
 }
 
 // Utility function to format date
-export function formatDate(dateString: string): string {
-    const date = new Date(dateString)
+export function formatDate(dateInput: string | number): string {
+    const date = new Date(dateInput)
     return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
@@ -123,8 +123,8 @@ export function formatDate(dateString: string): string {
     })
 }
 
-export function formatDateTime(dateString: string): string {
-    const date = new Date(dateString)
+export function formatDateTime(dateInput: string | number): string {
+    const date = new Date(dateInput)
     return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
