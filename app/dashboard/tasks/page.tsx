@@ -165,7 +165,7 @@ export default function TasksPage() {
         }
     }
 
-    const handleToggleExpand = (id: string, currentAssignees: string[]) => {
+    const handleToggleExpand = (id: Id<"projects">, currentAssignees: string[]) => {
         if (expandedProjectId === id) {
             setExpandedProjectId(null)
             setSelectedAssignees([])
