@@ -1,7 +1,8 @@
 import { Webhook } from "svix"
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
-import { fetchMutation } from "convex/nextjs"
+import { fetchMutation, fetchQuery } from "convex/nextjs"
+import { api } from "@/convex/_generated/api"
 
 const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
 
@@ -58,8 +59,8 @@ export async function POST(req: Request) {
 
         try {
             // Check if user already exists (for pre-created editors)
-            const existingUser = await fetchMutation(
-                "users:getUserByEmail",
+            const existingUser = await fetchQuery(
+                api.users.getUserByEmail,
                 { email },
                 { url: process.env.NEXT_PUBLIC_CONVEX_URL! }
             )
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
             if (existingUser) {
                 // Update the existing user with Clerk ID
                 await fetchMutation(
-                    "users:updateUserClerkId",
+                    api.users.updateUserClerkId,
                     { 
                         userId: existingUser._id, 
                         clerkId: id 
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
             } else {
                 // Create new user
                 await fetchMutation(
-                    "users:createUser",
+                    api.users.createUser,
                     { 
                         clerkId: id, 
                         email, 
@@ -106,8 +107,8 @@ export async function POST(req: Request) {
 
         try {
             // Get user by clerkId
-            const user = await fetchMutation(
-                "users:getUserByClerkId",
+            const user = await fetchQuery(
+                api.users.getUserByClerkId,
                 { clerkId: id },
                 { url: process.env.NEXT_PUBLIC_CONVEX_URL! }
             )
@@ -115,7 +116,7 @@ export async function POST(req: Request) {
             if (user) {
                 // Update user info
                 await fetchMutation(
-                    "users:updateUser",
+                    api.users.updateUser,
                     { 
                         userId: user._id, 
                         name, 
@@ -139,8 +140,8 @@ export async function POST(req: Request) {
 
         try {
             // Get user by clerkId
-            const user = await fetchMutation(
-                "users:getUserByClerkId",
+            const user = await fetchQuery(
+                api.users.getUserByClerkId,
                 { clerkId: id },
                 { url: process.env.NEXT_PUBLIC_CONVEX_URL! }
             )
@@ -148,7 +149,7 @@ export async function POST(req: Request) {
             if (user) {
                 // Soft delete by deactivating
                 await fetchMutation(
-                    "users:deactivateUser",
+                    api.users.deactivateUser,
                     { userId: user._id },
                     { url: process.env.NEXT_PUBLIC_CONVEX_URL! }
                 )
