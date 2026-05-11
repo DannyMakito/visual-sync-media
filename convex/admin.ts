@@ -109,3 +109,85 @@ export const isAdmin = query({
         return user?.role === "admin"
     },
 })
+
+// Get Admin Dashboard Stats
+export const getDashboardStats = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) return null
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user || user.role !== "admin") return null
+
+        const allOrders = await ctx.db.query("orders").collect()
+        const allProjects = await ctx.db.query("projects").collect()
+        const allEditors = await ctx.db.query("editors").collect()
+
+        // Calculate stats
+        const totalRevenue = allOrders.reduce((acc, order) => acc + (order.quote?.price || 0), 0)
+        const pendingApprovals = allOrders.filter(o => o.status === "quoted").length
+        const awaitingQuotes = allOrders.filter(o => o.status === "awaiting-quote").length
+        const activeProjectsCount = allProjects.filter(p => p.status !== "done").length
+        const totalProduced = allProjects.filter(p => p.status === "done").length
+
+        return {
+            totalRevenue,
+            pendingApprovals,
+            awaitingQuotes,
+            activeProjectsCount,
+            totalProduced,
+            onTimeDelivery: 92, // Mock for now
+            missedDeadlines: 1, // Mock for now
+        }
+    },
+})
+
+// Get active projects for dashboard queue
+export const getDashboardProjects = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) return []
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user || user.role !== "admin") return []
+
+        const projects = await ctx.db
+            .query("projects")
+            .order("desc")
+            .take(10)
+
+        return await Promise.all(
+            projects.map(async (p) => {
+                const client = await ctx.db.get(p.clientId)
+                const assignees = await Promise.all(
+                    p.assigneeIds.map(id => ctx.db.get(id))
+                )
+                
+                // Get last message info
+                const lastMessage = await ctx.db
+                    .query("messages")
+                    .withIndex("by_projectId", (q) => q.eq("projectId", p._id))
+                    .order("desc")
+                    .first()
+
+                return {
+                    ...p,
+                    clientName: client?.name || "Unknown",
+                    assigneeDetails: assignees.filter(Boolean),
+                    lastMessage: lastMessage?.content || "No messages yet",
+                    lastMessageAt: lastMessage?.createdAt || p.createdAt
+                }
+            })
+        )
+    },
+})

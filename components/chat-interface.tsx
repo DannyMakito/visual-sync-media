@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Send, User, Bot, Paperclip } from "lucide-react"
-import { cn, getInitials } from "@/lib/utils"
+import { cn, getInitials, formatChatDate } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 
 interface ChatInterfaceProps {
@@ -30,12 +30,18 @@ export function ChatInterface({ orderId, projectId, title, showHead = true }: Ch
     ) || []
 
     const sendMessage = useMutation(api.messages.createMessage)
+    const markRead = useMutation(api.messages.markRead)
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight
         }
-    }, [messages])
+        
+        // Mark as read when messages change (if we are the one viewing it)
+        if (messages.length > 0) {
+            markRead({ orderId, projectId }).catch(console.error)
+        }
+    }, [messages, orderId, projectId, markRead])
 
     const handleSend = async (e?: React.FormEvent) => {
         e?.preventDefault()
@@ -51,6 +57,67 @@ export function ChatInterface({ orderId, projectId, title, showHead = true }: Ch
         } catch (error) {
             console.error("Failed to send message:", error)
         }
+    }
+
+    const renderMessages = () => {
+        const elements: React.ReactNode[] = []
+        let lastDate = ""
+
+        messages.forEach((msg) => {
+            const date = new Date(msg.createdAt).toDateString()
+            if (date !== lastDate) {
+                elements.push(
+                    <div key={`date-${date}`} className="flex justify-center my-6">
+                        <span className="bg-muted/80 backdrop-blur-sm border px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter text-muted-foreground shadow-sm">
+                            {formatChatDate(new Date(msg.createdAt).toISOString())}
+                        </span>
+                    </div>
+                )
+                lastDate = date
+            }
+
+            const isMe = msg.senderId === user?.id
+            elements.push(
+                <div
+                    key={msg._id}
+                    className={cn(
+                        "flex gap-3 max-w-[85%] animate-in fade-in slide-in-from-bottom-2 duration-300",
+                        isMe ? "ml-auto flex-row-reverse" : "mr-auto"
+                    )}
+                >
+                    <Avatar className="h-8 w-8 shrink-0 border shadow-sm">
+                        <AvatarImage src={msg.sender?.image} />
+                        <AvatarFallback>{getInitials(msg.sender?.name || "U")}</AvatarFallback>
+                    </Avatar>
+                    <div className={cn(
+                        "space-y-1",
+                        isMe ? "items-end" : "items-start"
+                    )}>
+                        {!isMe && (
+                            <p className="text-[10px] font-bold text-muted-foreground px-1 mb-0.5">
+                                {msg.sender?.name}
+                            </p>
+                        )}
+                        <div className={cn(
+                            "rounded-2xl p-3 text-sm shadow-sm",
+                            isMe 
+                                ? "bg-primary text-primary-foreground rounded-tr-none" 
+                                : "bg-muted text-foreground rounded-tl-none"
+                        )}>
+                            {msg.content}
+                        </div>
+                        <p className={cn(
+                            "text-[10px] text-muted-foreground px-1",
+                            isMe ? "text-right" : "text-left"
+                        )}>
+                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                    </div>
+                </div>
+            )
+        })
+
+        return elements
     }
 
     return (
@@ -81,39 +148,7 @@ export function ChatInterface({ orderId, projectId, title, showHead = true }: Ch
                             <p className="text-xs font-medium">No messages yet. Start the conversation!</p>
                         </div>
                     ) : (
-                        messages.map((msg) => {
-                            const isMe = msg.senderId === user?._id
-                            return (
-                                <div
-                                    key={msg._id}
-                                    className={cn(
-                                        "flex gap-3 max-w-[85%]",
-                                        isMe ? "ml-auto flex-row-reverse" : "mr-auto"
-                                    )}
-                                >
-                                    <Avatar className="h-8 w-8 shrink-0">
-                                        <AvatarImage src={msg.sender?.image} />
-                                        <AvatarFallback>{getInitials(msg.sender?.name || "U")}</AvatarFallback>
-                                    </Avatar>
-                                    <div className={cn(
-                                        "space-y-1",
-                                        isMe ? "items-end" : "items-start"
-                                    )}>
-                                        <div className={cn(
-                                            "rounded-2xl p-3 text-sm shadow-sm",
-                                            isMe 
-                                                ? "bg-primary text-primary-foreground rounded-tr-none" 
-                                                : "bg-muted text-foreground rounded-tl-none"
-                                        )}>
-                                            {msg.content}
-                                        </div>
-                                        <p className="text-[10px] text-muted-foreground px-1">
-                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                    </div>
-                                </div>
-                            )
-                        })
+                        renderMessages()
                     )}
                 </div>
             </ScrollArea>

@@ -136,15 +136,16 @@ export const getConversations = query({
 
         if (!user || user.role !== "admin") return []
 
-        // 1. Get all messages
-        const allMessages = await ctx.db.query("messages").collect()
+        // 1. Get unique conversation keys from recent messages
+        // In a production app, we'd use a dedicated 'conversations' table.
+        // Here we'll take the last 1000 messages to find active convos.
+        const recentMessages = await ctx.db.query("messages").order("desc").take(1000)
         
-        // 2. Group by orderId or projectId to find active conversations
         const convos: Record<string, any> = {}
 
-        for (const msg of allMessages) {
+        for (const msg of recentMessages) {
             const key = msg.orderId ? `order_${msg.orderId}` : `project_${msg.projectId}`
-            if (!convos[key] || convos[key].lastMessageAt < msg.createdAt) {
+            if (!convos[key]) {
                 convos[key] = {
                     id: msg.orderId || msg.projectId,
                     type: msg.orderId ? "client" : "editor",
@@ -157,7 +158,7 @@ export const getConversations = query({
             }
         }
 
-        // 3. Populate metadata (Client/Project info)
+        // 3. Populate metadata and unread counts
         const result = await Promise.all(
             Object.values(convos).map(async (c: any) => {
                 let title = "Unknown"
@@ -176,11 +177,72 @@ export const getConversations = query({
                 
                 const lastSender = await ctx.db.get(c.lastSenderId)
 
-                return { ...c, title, subtitle, lastSender }
+                // Get unread count
+                const lastRead = await ctx.db
+                    .query("readReceipts")
+                    .withIndex("by_user_convo", (q) => 
+                        q.eq("userId", user._id).eq("orderId", c.orderId).eq("projectId", c.projectId)
+                    )
+                    .unique()
+                
+                const lastReadAt = lastRead?.lastReadAt || 0
+                
+                const unreadMessages = await ctx.db
+                    .query("messages")
+                    .withIndex(c.orderId ? "by_orderId" : "by_projectId", (q) => 
+                        c.orderId ? q.eq("orderId", c.orderId) : q.eq("projectId", c.projectId)
+                    )
+                    .filter((q) => q.gt(q.field("createdAt"), lastReadAt))
+                    .collect()
+
+                return { 
+                    ...c, 
+                    title, 
+                    subtitle, 
+                    lastSender, 
+                    unreadCount: unreadMessages.filter(m => m.senderId !== user._id).length 
+                }
             })
         )
 
         return result.sort((a, b) => b.lastMessageAt - a.lastMessageAt)
+    },
+})
+
+// Mark a conversation as read
+export const markRead = mutation({
+    args: {
+        orderId: v.optional(v.id("orders")),
+        projectId: v.optional(v.id("projects")),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) throw new Error("Not authenticated")
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user) throw new Error("User not found")
+
+        const existing = await ctx.db
+            .query("readReceipts")
+            .withIndex("by_user_convo", (q) => 
+                q.eq("userId", user._id).eq("orderId", args.orderId).eq("projectId", args.projectId)
+            )
+            .unique()
+
+        if (existing) {
+            await ctx.db.patch(existing._id, { lastReadAt: Date.now() })
+        } else {
+            await ctx.db.insert("readReceipts", {
+                userId: user._id,
+                orderId: args.orderId,
+                projectId: args.projectId,
+                lastReadAt: Date.now(),
+            })
+        }
     },
 })
 

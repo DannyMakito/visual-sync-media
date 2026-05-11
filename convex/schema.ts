@@ -124,4 +124,15 @@ export default defineSchema({
         createdAt: v.number(),
     })
         .index("by_projectId", ["projectId"]),
+
+    // Read Receipts - track when users last read messages in a conversation
+    readReceipts: defineTable({
+        userId: v.id("users"),
+        orderId: v.optional(v.id("orders")),
+        projectId: v.optional(v.id("projects")),
+        lastReadAt: v.number(),
+    })
+        .index("by_user_convo", ["userId", "orderId", "projectId"])
+        .index("by_orderId", ["orderId"])
+        .index("by_projectId", ["projectId"]),
 })

@@ -311,7 +311,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                     <span className="truncate font-semibold">
                                         {role === 'admin' ? 'Shadcn Admin' : role === 'client' ? 'Client Portal' : 'Editor Dashboard'}
                                     </span>
-                                    <span className="truncate text-xs text-muted-foreground">Universal Media Co</span>
+                                    <span className="truncate text-xs text-muted-foreground">Visual Sync Media</span>
                                 </div>
                                 <ChevronsUpDown className="ml-auto size-4 opacity-50" />
                             </Link>
