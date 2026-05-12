@@ -86,7 +86,6 @@ export function ChatInterface({ orderId, projectId, title, showHead = true }: Ch
                     )}
                 >
                     <Avatar className="h-8 w-8 shrink-0 border shadow-sm">
-                        <AvatarImage src={msg.sender?.image} />
                         <AvatarFallback>{getInitials(msg.sender?.name || "U")}</AvatarFallback>
                     </Avatar>
                     <div className={cn(
