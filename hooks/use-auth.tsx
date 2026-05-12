@@ -10,7 +10,7 @@ export type Role = "admin" | "client" | "editor"
 
 interface AuthUser {
     id: string
-    clerkId: string
+    clerkId?: string
     name: string
     email: string
     role: Role

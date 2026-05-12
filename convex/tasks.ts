@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server"
+import type { MutationCtx } from "./_generated/server"
 import { v } from "convex/values"
 import { Id } from "./_generated/dataModel"
 
@@ -186,10 +187,10 @@ export const getProjectActivity = query({
 })
 
 // Helper to update project progress based on tasks
-async function updateProjectProgress(ctx: any, projectId: Id<"projects">) {
+async function updateProjectProgress(ctx: MutationCtx, projectId: Id<"projects">) {
     const tasks = await ctx.db
         .query("tasks")
-        .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
+        .withIndex("by_projectId", (q: any) => q.eq("projectId", projectId))
         .collect()
 
     if (tasks.length === 0) return
