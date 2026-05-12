@@ -7,6 +7,7 @@ export default defineSchema({
         clerkId: v.optional(v.string()),
         email: v.string(),
         name: v.string(),
+        image: v.optional(v.string()),
         role: v.union(v.literal("admin"), v.literal("client"), v.literal("editor")),
         isActive: v.optional(v.boolean()),
         createdAt: v.number(),

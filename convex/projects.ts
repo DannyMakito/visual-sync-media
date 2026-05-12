@@ -205,7 +205,7 @@ export const getProjectById = query({
         const project = await ctx.db.get(args.projectId)
         if (!project) return null
 
-        return await populateProjectData(ctx, [project])[0]
+        return (await populateProjectData(ctx, [project]))[0]
     },
 })
 

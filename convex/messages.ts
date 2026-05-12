@@ -171,7 +171,7 @@ export const getConversations = query({
                     subtitle = (order && "title" in order) ? order.title : "Order"
                 } else if (c.projectId) {
                     const project = await ctx.db.get(c.projectId)
-                    title = project?.title || "Project"
+                    title = (project && "title" in project) ? project.title : "Project"
                     subtitle = "Internal Team"
                 }
                 
