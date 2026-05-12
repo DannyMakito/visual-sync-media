@@ -166,9 +166,9 @@ export const getConversations = query({
                 
                 if (c.orderId) {
                     const order = await ctx.db.get(c.orderId)
-                    const client = order ? await ctx.db.get(order.clientId) : null
+                    const client = order && "clientId" in order ? await ctx.db.get(order.clientId) : null
                     title = client?.name || "Client"
-                    subtitle = order?.title || "Order"
+                    subtitle = (order && "title" in order) ? order.title : "Order"
                 } else if (c.projectId) {
                     const project = await ctx.db.get(c.projectId)
                     title = project?.title || "Project"
