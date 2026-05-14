@@ -120,7 +120,7 @@ export function ChatInterface({ orderId, projectId, title, showHead = true }: Ch
     }
 
     return (
-        <div className="flex flex-col h-full bg-card border rounded-lg overflow-hidden shadow-sm">
+        <div className="flex flex-col h-full bg-card border-0 sm:border sm:rounded-lg overflow-hidden shadow-none sm:shadow-sm">
             {showHead && (
                 <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
                     <div className="flex items-center gap-3">

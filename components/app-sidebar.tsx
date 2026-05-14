@@ -70,6 +70,7 @@ import {
     SidebarMenuSubItem,
     SidebarProvider,
     SidebarRail,
+    useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/use-auth"
 import { useUser } from "@clerk/nextjs"
@@ -228,7 +229,7 @@ const clientNav: NavGroup[] = [
         items: [
             {
                 title: "Account Settings",
-                url: "#",
+                url: "/client/account",
                 icon: Settings,
             },
             {
@@ -284,14 +285,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const { user, role, logout, loading } = useAuth()
     const { user: clerkUser } = useUser()
     const pathname = usePathname()
+    const { isMobile, setOpenMobile } = useSidebar()
+
+    const closeMobileOnClick = () => {
+        if (isMobile) setOpenMobile(false)
+    }
 
     const navMain = React.useMemo(() => {
+        // Don't show admin sidebar during loading - show empty nav instead
+        if (loading) return []
         switch (role) {
             case "client": return clientNav
             case "editor": return editorNav
             default: return adminNav
         }
-    }, [role])
+    }, [role, loading])
 
     const userName = user?.name || clerkUser?.fullName || "User"
     const userEmail = user?.email || clerkUser?.primaryEmailAddress?.emailAddress || ""
@@ -337,7 +345,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                         <SidebarMenuButton
                                                             tooltip={item.title}
                                                             isActive={isActive}
-                                                            className="hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
+                                                            className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
                                                         >
                                                             {item.icon && <item.icon className="h-4 w-4" />}
                                                             <span className="font-medium">{item.title}</span>
@@ -349,7 +357,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                             {item.items?.map((subItem) => (
                                                                 <SidebarMenuSubItem key={subItem.title}>
                                                                     <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
-                                                                        <Link href={subItem.url}>
+                                                                        <Link href={subItem.url} onClick={closeMobileOnClick}>
                                                                             <span className={pathname === subItem.url ? "font-semibold" : ""}>{subItem.title}</span>
                                                                         </Link>
                                                                     </SidebarMenuSubButton>
@@ -364,9 +372,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                 <SidebarMenuButton
                                                     asChild
                                                     isActive={pathname === item.url}
-                                                    className="hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
+                                                    className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
                                                 >
-                                                    <Link href={item.url}>
+                                                    <Link href={item.url} onClick={closeMobileOnClick}>
                                                         {item.icon && <item.icon className="h-4 w-4" />}
                                                         <span className="font-medium">{item.title}</span>
                                                         {item.badge && (
@@ -407,7 +415,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                                side="right"
+                                side={isMobile ? "top" : "right"}
                                 align="end"
                                 sideOffset={4}
                             >
@@ -432,9 +440,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuGroup>
-                                    <DropdownMenuItem>
-                                        <BadgeCheck className="mr-2 h-4 w-4" />
-                                        Account
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`${role === 'admin' ? '/dashboard' : `/${role}`}/account`}>
+                                            <BadgeCheck className="mr-2 h-4 w-4" />
+                                            Account
+                                        </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem>
                                         <CreditCard className="mr-2 h-4 w-4" />

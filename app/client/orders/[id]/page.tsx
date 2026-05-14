@@ -114,19 +114,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 Back to Orders
             </Link>
 
-            {/* Header */}
+            {/* Header — status badge inline with title */}
             <div>
-                <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">
-                            {order.title}
-                        </h1>
-                        <p className="text-muted-foreground mt-1">Order #{order._id}</p>
-                    </div>
-                    <div className={`px-4 py-2 rounded-full text-sm font-semibold ${statusConfig.color}`}>
+                <div className="flex items-center gap-3 flex-wrap mb-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight">
+                        {order.title}
+                    </h1>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 ${statusConfig.color}`}>
                         {statusConfig.label}
-                    </div>
+                    </span>
                 </div>
+                <p className="text-muted-foreground text-sm">Order #{order._id}</p>
             </div>
 
             {/* Main Content */}
@@ -139,9 +137,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     <TabsTrigger value="messages">Messages</TabsTrigger>
                 </TabsList>
 
-                {/* Details Tab */}
+                {/* Details Tab — card bleeds to screen edges on mobile */}
                 <TabsContent value="details" className="space-y-4">
-                    <Card>
+                    <div className="-mx-4 sm:mx-0">
+                        <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x shadow-none sm:shadow">
                         <CardHeader>
                             <CardTitle className="text-lg">Project Information</CardTitle>
                         </CardHeader>
@@ -204,13 +203,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 </div>
                             </div>
                         </CardContent>
-                    </Card>
+                        </Card>
+                    </div>
                 </TabsContent>
 
-                {/* Quote Tab */}
+                {/* Quote Tab — card bleeds to screen edges on mobile */}
                 <TabsContent value="quote">
                     {order.quote ? (
-                        <Card>
+                        <div className="-mx-4 sm:mx-0">
+                            <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x shadow-none sm:shadow">
                             <CardHeader>
                                 <CardTitle>Quote Details</CardTitle>
                             </CardHeader>
@@ -246,9 +247,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     Download Quote PDF
                                 </Button>
                             </CardContent>
-                        </Card>
+                            </Card>
+                        </div>
                     ) : (
-                        <Card>
+                        <div className="-mx-4 sm:mx-0">
+                            <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x shadow-none sm:shadow">
                             <CardContent className="flex flex-col items-center justify-center py-12">
                                 <p className="text-lg font-semibold mb-2">Quote Pending</p>
                                 <p className="text-muted-foreground text-center">
@@ -256,14 +259,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     detailed quote within 24 hours.
                                 </p>
                             </CardContent>
-                        </Card>
+                            </Card>
+                        </div>
                     )}
                 </TabsContent>
 
-                {/* Messages Tab */}
-                <TabsContent value="messages" className="h-[500px]">
-                    <ChatInterface 
-                        orderId={orderId} 
+                {/* Messages Tab — full-bleed on mobile, fills remaining viewport */}
+                <TabsContent
+                    value="messages"
+                    className="-mx-4 sm:mx-0 flex flex-col"
+                    style={{ height: "calc(100dvh - 240px)" }}
+                >
+                    <ChatInterface
+                        orderId={orderId}
                         title={`Chat with ${order.title} Team`}
                         showHead={false}
                     />

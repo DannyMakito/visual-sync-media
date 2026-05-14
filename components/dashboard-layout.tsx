@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input"
 import { Search, Moon, Sun, Monitor, LogOut, Settings, User } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -30,13 +32,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SearchCommand } from "@/components/search-command"
 import { Button } from "@/components/ui/button"
+import { ModeToggle } from "@/components/mode-toggle"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, role, loading, logout } = useAuth()
     const { user: clerkUser, isLoaded: isClerkLoaded } = useUser()
     const router = useRouter()
     const pathname = usePathname()
-    const { setTheme, theme } = useTheme()
 
     useEffect(() => {
         // Only redirect to login if Clerk confirms NO user is signed in
@@ -89,7 +91,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex min-h-screen w-full">
             <AppSidebar />
             <SidebarInset className="flex-1 w-full flex flex-col">
-                <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 border-b w-full">
+                <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between gap-2 px-4 border-b w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
                     <div className="flex items-center gap-2">
                         <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground" />
                         <Separator orientation="vertical" className="mr-2 h-4" />
@@ -102,29 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <SearchCommand />
                         </div>
                         <div className="flex items-center gap-3 mr-2">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-9 w-9">
-                                        <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                        <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                                        <span className="sr-only">Toggle theme</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => setTheme("light")}>
-                                        <Sun className="mr-2 h-4 w-4" />
-                                        <span>Light</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme("dark")}>
-                                        <Moon className="mr-2 h-4 w-4" />
-                                        <span>Dark</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme("system")}>
-                                        <Monitor className="mr-2 h-4 w-4" />
-                                        <span>System</span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <ModeToggle />
 
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

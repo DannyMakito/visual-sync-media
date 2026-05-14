@@ -11,6 +11,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from "@/components/ui/sidebar"
 import {
     LayoutDashboard,
@@ -35,6 +36,11 @@ const menuItems = [
 
 export function AdminSidebar() {
     const pathname = usePathname()
+    const { isMobile, setOpenMobile } = useSidebar()
+
+    const closeMobileOnClick = () => {
+        if (isMobile) setOpenMobile(false)
+    }
 
     return (
         <Sidebar>
@@ -53,7 +59,7 @@ export function AdminSidebar() {
                             {menuItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton asChild isActive={pathname === item.url}>
-                                        <Link href={item.url}>
+                                        <Link href={item.url} onClick={closeMobileOnClick}>
                                             <item.icon className="h-4 w-4" />
                                             <span>{item.title}</span>
                                         </Link>

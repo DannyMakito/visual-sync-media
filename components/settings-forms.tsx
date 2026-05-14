@@ -40,6 +40,8 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { CheckIcon, ChevronsUpDown } from "lucide-react"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 // --- Profile Form ---
 const profileFormSchema = z.object({
@@ -365,16 +367,18 @@ type AppearanceFormValues = z.infer<typeof appearanceFormSchema>
 
 export function AppearanceForm() {
     const { theme, setTheme } = useTheme()
+    const updateTheme = useMutation(api.users.updateThemePreference)
 
     const form = useForm<AppearanceFormValues>({
         resolver: zodResolver(appearanceFormSchema),
         defaultValues: {
-            theme: theme as "light" | "dark" || "dark"
+            theme: (theme as "light" | "dark") || "dark"
         },
     })
 
     function onSubmit(data: AppearanceFormValues) {
         setTheme(data.theme)
+        updateTheme({ theme: data.theme })
 
         toast("Preference updated", {
             description: `Theme changed to ${data.theme}`,

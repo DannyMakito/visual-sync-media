@@ -270,3 +270,85 @@ export const deleteMessage = mutation({
         await ctx.db.delete(args.messageId)
     },
 })
+// Get total unread count for the current user across all conversations
+export const getTotalUnreadCount = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) return 0
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user) return 0
+
+        // Find all orders for client or assigned projects for editor
+        let orderIds: any[] = []
+        let projectIds: any[] = []
+
+        if (user.role === "client") {
+            const orders = await ctx.db
+                .query("orders")
+                .withIndex("by_clientId", (q) => q.eq("clientId", user._id))
+                .collect()
+            orderIds = orders.map(o => o._id)
+
+            const projects = await ctx.db
+                .query("projects")
+                .withIndex("by_clientId", (q) => q.eq("clientId", user._id))
+                .collect()
+            projectIds = projects.map(p => p._id)
+        } else if (user.role === "editor") {
+            const allProjects = await ctx.db.query("projects").collect()
+            const assignedProjects = allProjects.filter(p =>
+                p.assigneeIds.some(id => id.toString() === user._id.toString())
+            )
+            projectIds = assignedProjects.map(p => p._id)
+        } else if (user.role === "admin") {
+            const allOrders = await ctx.db.query("orders").collect()
+            orderIds = allOrders.map(o => o._id)
+            const allProjects = await ctx.db.query("projects").collect()
+            projectIds = allProjects.map(p => p._id)
+        }
+
+        let totalUnread = 0
+
+        // Check unread in orders
+        for (const orderId of orderIds) {
+            const lastRead = await ctx.db
+                .query("readReceipts")
+                .withIndex("by_user_convo", (q) => q.eq("userId", user._id).eq("orderId", orderId).eq("projectId", undefined))
+                .unique()
+            
+            const lastReadAt = lastRead?.lastReadAt || 0
+            const unread = await ctx.db
+                .query("messages")
+                .withIndex("by_orderId", (q) => q.eq("orderId", orderId))
+                .filter((q) => q.gt(q.field("createdAt"), lastReadAt))
+                .collect()
+            
+            totalUnread += unread.filter(m => m.senderId !== user._id).length
+        }
+
+        // Check unread in projects
+        for (const projectId of projectIds) {
+            const lastRead = await ctx.db
+                .query("readReceipts")
+                .withIndex("by_user_convo", (q) => q.eq("userId", user._id).eq("orderId", undefined).eq("projectId", projectId))
+                .unique()
+            
+            const lastReadAt = lastRead?.lastReadAt || 0
+            const unread = await ctx.db
+                .query("messages")
+                .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
+                .filter((q) => q.gt(q.field("createdAt"), lastReadAt))
+                .collect()
+            
+            totalUnread += unread.filter(m => m.senderId !== user._id).length
+        }
+
+        return totalUnread
+    },
+})

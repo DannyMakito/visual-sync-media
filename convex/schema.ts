@@ -10,6 +10,7 @@ export default defineSchema({
         image: v.optional(v.string()),
         role: v.union(v.literal("admin"), v.literal("client"), v.literal("editor")),
         isActive: v.optional(v.boolean()),
+        theme: v.optional(v.union(v.literal("light"), v.literal("dark"), v.literal("system"))),
         createdAt: v.number(),
         updatedAt: v.number(),
     })

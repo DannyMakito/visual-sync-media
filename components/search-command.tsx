@@ -36,12 +36,20 @@ import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/hooks/use-auth"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 export function SearchCommand() {
     const [open, setOpen] = React.useState(false)
     const router = useRouter()
     const { setTheme } = useTheme()
     const { logout } = useAuth()
+    const updateTheme = useMutation(api.users.updateThemePreference)
+
+    const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
+        setTheme(newTheme)
+        updateTheme({ theme: newTheme })
+    }
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -116,15 +124,15 @@ export function SearchCommand() {
                     </CommandGroup>
                     <CommandSeparator />
                     <CommandGroup heading="Theme">
-                        <CommandItem onSelect={() => runCommand(() => setTheme("light"))}>
+                        <CommandItem onSelect={() => runCommand(() => handleThemeChange("light"))}>
                             <SunIcon className="mr-2 h-4 w-4" />
                             <span>Light Mode</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => setTheme("dark"))}>
+                        <CommandItem onSelect={() => runCommand(() => handleThemeChange("dark"))}>
                             <MoonIcon className="mr-2 h-4 w-4" />
                             <span>Dark Mode</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => setTheme("system"))}>
+                        <CommandItem onSelect={() => runCommand(() => handleThemeChange("system"))}>
                             <DesktopIcon className="mr-2 h-4 w-4" />
                             <span>System</span>
                         </CommandItem>
