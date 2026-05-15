@@ -122,23 +122,23 @@ export function QuoteWizard() {
     }
 
     return (
-        <div className="w-full bg-black min-h-screen">
+        <div className="w-full min-h-screen bg-background">
             {/* Header */}
-            <div className="border-b bg-black sticky top-0 z-10 -m-6 p-6 mb-0">
+            <div className="border-b bg-background sticky top-0 z-10 -m-6 p-6 mb-0">
                 <div className="flex items-center gap-4">
-                    <Link href="/client/orders" className="flex items-center gap-2 text-gray-400 hover:text-white transition">
+                    <Link href="/client/orders" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition">
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
                     <div className="flex-1">
-                        <h1 className="text-2xl font-bold text-orange-500">QUOTE</h1>
-                        <p className="text-xs text-gray-400">WIZARD</p>
-                        <p className="text-xs text-white font-semibold">PRECISION PROJECT SCOPING</p>
+                        <h1 className="text-2xl font-bold text-primary">QUOTE</h1>
+                        <p className="text-xs text-muted-foreground">WIZARD</p>
+                        <p className="text-xs font-semibold text-foreground">PRECISION PROJECT SCOPING</p>
                     </div>
                 </div>
             </div>
 
             {/* Progress Steps */}
-            <div className="border-b bg-black border-gray-800 -mx-6 px-6">
+            <div className="border-b bg-muted/30 border-border -mx-6 px-6">
                 <div className="flex items-center justify-between py-6">
                     {STEPS.map((step) => (
                         <div
@@ -148,17 +148,17 @@ export function QuoteWizard() {
                             <div
                                 className={`flex items-center justify-center h-8 w-8 rounded-full font-bold transition-all ${
                                     data.step >= step.number
-                                        ? "bg-orange-500 text-white"
-                                        : "bg-black text-gray-400"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-muted-foreground"
                                 }`}
                             >
                                 {step.number}
                             </div>
                             <div className="hidden md:flex flex-col items-center text-center">
-                                <p className="text-xs font-bold text-gray-400 uppercase">
+                                <p className="text-xs font-bold text-muted-foreground uppercase">
                                     {step.title}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-muted-foreground/60">
                                     {step.description}
                                 </p>
                             </div>
@@ -169,10 +169,10 @@ export function QuoteWizard() {
 
             {/* Form Content */}
             <div className="py-10 -mx-6 px-6">
-                <Card className="border-0">
+                <Card className="border-0 bg-transparent shadow-none">
                     <CardHeader>
                         <div className="flex items-start gap-4">
-                            <div className="bg-orange-500 w-1 h-12 rounded" />
+                            <div className="bg-primary w-1 h-12 rounded" />
                             <div>
                                 <CardTitle className="text-2xl">
                                     STEP {data.step}: {STEPS[data.step - 1].title}
@@ -198,12 +198,12 @@ export function QuoteWizard() {
                                             }
                                             className={`p-6 rounded-lg border-2 transition-all text-left ${
                                                 data.service === service.id
-                                                    ? "border-orange-500 bg-orange-50"
-                                                    : "border-gray-200 hover:border-orange-500"
+                                                    ? "border-primary bg-primary/5"
+                                                    : "border-border hover:border-primary/50"
                                             }`}
                                         >
                                             <div className="text-3xl mb-2">{service.icon}</div>
-                                            <div className="font-bold text-blue-600">
+                                            <div className="font-bold text-primary">
                                                 {service.title}
                                             </div>
                                             <div className="text-xs text-muted-foreground font-semibold mb-2">
@@ -241,7 +241,7 @@ export function QuoteWizard() {
                                         <Label htmlFor="requirements" className="text-sm font-bold">
                                             CORE REQUIREMENTS*
                                         </Label>
-                                        <button className="text-xs text-orange-500 hover:text-orange-600 font-semibold">
+                                        <button className="text-xs text-primary hover:text-primary/80 font-semibold">
                                             ✨ POLISH WITH AI
                                         </button>
                                     </div>
@@ -291,8 +291,8 @@ export function QuoteWizard() {
                                                 }}
                                                 className={`py-2 px-3 rounded border-2 text-sm font-semibold transition-all ${
                                                     data.targetPlatforms?.includes(platform)
-                                                        ? "border-blue-600 bg-blue-50 text-blue-600"
-                                                        : "border-gray-200 text-gray-600 hover:border-blue-300"
+                                                        ? "border-primary bg-primary/10 text-primary"
+                                                        : "border-border text-muted-foreground hover:border-primary/30"
                                                 }`}
                                             >
                                                 {platform}
@@ -315,8 +315,8 @@ export function QuoteWizard() {
                                                 className={`py-3 px-4 rounded border-2 font-semibold transition-all ${
                                                     data.stylePreset ===
                                                     preset.toLowerCase()
-                                                        ? "border-blue-600 bg-blue-50 text-blue-600"
-                                                        : "border-gray-200 text-gray-600 hover:border-blue-300"
+                                                        ? "border-primary bg-primary/10 text-primary"
+                                                        : "border-border text-muted-foreground hover:border-primary/30"
                                                 }`}
                                             >
                                                 {preset}
@@ -330,25 +330,25 @@ export function QuoteWizard() {
                         {/* Step 4: Review */}
                         {data.step === 4 && (
                             <div className="space-y-6">
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                                    <h3 className="font-bold text-blue-600 mb-4">ORDER SUMMARY</h3>
+                                <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
+                                    <h3 className="font-bold text-primary mb-4">ORDER SUMMARY</h3>
                                     <div className="space-y-3 text-sm">
                                         <div>
-                                            <span className="font-semibold text-gray-600">Service:</span>
-                                            <span className="ml-2 text-gray-800">
+                                            <span className="font-semibold text-muted-foreground">Service:</span>
+                                            <span className="ml-2 text-foreground">
                                                 {data.service?.toUpperCase().replace("-", " ")}
                                             </span>
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-gray-600">
+                                            <span className="font-semibold text-muted-foreground">
                                                 Project:
                                             </span>
-                                            <span className="ml-2 text-gray-800">
+                                            <span className="ml-2 text-foreground">
                                                 {data.projectHeadline}
                                             </span>
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-gray-600">
+                                            <span className="font-semibold text-muted-foreground">
                                                 Platforms:
                                             </span>
                                             <div className="ml-2 flex flex-wrap gap-1 mt-1">
@@ -358,8 +358,8 @@ export function QuoteWizard() {
                                             </div>
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-gray-600">Style:</span>
-                                            <span className="ml-2 text-gray-800">
+                                            <span className="font-semibold text-muted-foreground">Style:</span>
+                                            <span className="ml-2 text-foreground">
                                                 {data.stylePreset?.toUpperCase()}
                                             </span>
                                         </div>
@@ -367,10 +367,10 @@ export function QuoteWizard() {
                                 </div>
 
                                 <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="font-bold text-gray-600 mb-2">
+                                    <h3 className="font-bold text-muted-foreground mb-2">
                                         What happens next?
                                     </h3>
-                                    <ul className="text-sm text-gray-600 space-y-2 list-disc list-inside">
+                                    <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
                                         <li>Our team reviews your order and raw assets</li>
                                         <li>
                                             You'll receive a detailed quote within 24 hours
@@ -396,7 +396,7 @@ export function QuoteWizard() {
 
                             {data.step === 4 ? (
                                 <Button
-                                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                                     onClick={handleSubmit}
                                     disabled={isSubmitting}
                                 >
@@ -404,7 +404,7 @@ export function QuoteWizard() {
                                 </Button>
                             ) : (
                                 <Button
-                                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                                     onClick={goToNextStep}
                                     disabled={
                                         (data.step === 1 && !data.service) ||

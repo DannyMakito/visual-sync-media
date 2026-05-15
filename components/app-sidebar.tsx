@@ -24,8 +24,14 @@ import {
     SquareTerminal,
     LayoutDashboard,
     CheckSquare,
-    Box,
+    FolderKanban,
+    Clock,
+    CheckCircle2,
+    ArrowRight,
     MessageSquare,
+    Box,
+    Loader2,
+    User,
     Users,
     Lock,
     FileText,
@@ -217,11 +223,6 @@ const clientNav: NavGroup[] = [
                 icon: Box,
                 badge: "2",
             },
-            {
-                title: "Tickets",
-                url: "#",
-                icon: MessageSquare,
-            },
         ],
     },
     {
@@ -292,12 +293,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
 
     const navMain = React.useMemo(() => {
-        // Don't show admin sidebar during loading - show empty nav instead
-        if (loading) return []
+        // Don't show any sidebar during loading or if role is missing
+        if (loading || !role) return []
         switch (role) {
             case "client": return clientNav
             case "editor": return editorNav
-            default: return adminNav
+            case "admin": return adminNav
+            default: return []
         }
     }, [role, loading])
 
@@ -310,19 +312,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href="/">
-                                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                                    <Command className="size-4" />
-                                </div>
-                                <div className="grid flex-1 text-left text-sm leading-tight">
-                                    <span className="truncate font-semibold">
-                                        {role === 'admin' ? 'Shadcn Admin' : role === 'client' ? 'Client Portal' : 'Editor Dashboard'}
-                                    </span>
-                                    <span className="truncate text-xs text-muted-foreground">Visual Sync Media</span>
-                                </div>
-                                <ChevronsUpDown className="ml-auto size-4 opacity-50" />
-                            </Link>
+                        <SidebarMenuButton size="lg" className="hover:bg-transparent cursor-default">
+                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                                <Command className="size-4" />
+                            </div>
+                            <div className="grid flex-1 text-left text-sm leading-tight">
+                                <span className="truncate font-semibold">
+                                    {role === 'admin' ? 'Shadcn Admin' : role === 'client' ? 'Client Portal' : role === 'editor' ? 'Editor Dashboard' : 'Universal Media'}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">Visual Sync Media</span>
+                            </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

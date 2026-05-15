@@ -14,6 +14,7 @@ import {
     ChevronRight,
     Box,
     Loader2,
+    User,
 } from "lucide-react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -38,8 +39,9 @@ export default function ClientDashboardPage() {
     const orders = useQuery(api.orders.getClientOrders)
     const projects = useQuery(api.projects.getEditorProjects)
     const unreadCount = useQuery(api.messages.getTotalUnreadCount)
+    const user = useQuery(api.users.getCurrentUser)
 
-    if (orders === undefined || projects === undefined || unreadCount === undefined) {
+    if (orders === undefined || projects === undefined || unreadCount === undefined || user === undefined) {
         return (
             <div className="flex h-[80vh] items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -93,7 +95,9 @@ export default function ClientDashboardPage() {
             {/* ══════════ MOBILE LAYOUT (hidden on md+) ══════════ */}
             <div className="md:hidden space-y-5">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Welcome Back 👋</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">
+                        Welcome, {user?.name?.split(' ')[0] || 'User'} 👋
+                    </h1>
                     <p className="text-muted-foreground text-sm mt-0.5">Here&apos;s your portal overview</p>
                 </div>
 
@@ -193,7 +197,9 @@ export default function ClientDashboardPage() {
             {/* ══════════ DESKTOP LAYOUT (hidden on mobile) ══════════ */}
             <div className="hidden md:block space-y-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">
+                        Welcome, {user?.name?.split(' ')[0] || 'User'}
+                    </h1>
                     <p className="text-muted-foreground">Here&apos;s an overview of your projects and orders</p>
                 </div>
 
