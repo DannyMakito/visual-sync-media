@@ -3,6 +3,8 @@ import { NextResponse } from "next/server"
 
 const isPublicRoute = createRouteMatcher([
     "/",
+    "/about",
+    "/contact",
     "/login",
     "/signup",
     "/api/webhooks/clerk",
@@ -37,17 +39,13 @@ export default clerkMiddleware(async (auth, req) => {
     const role = sessionClaims?.role as string | undefined
 
     // --- Signed-in users on public pages: redirect to their dashboard ---
-    if (userId && (pathname === "/" || pathname === "/login" || pathname === "/signup")) {
+    if (userId && (pathname === "/login" || pathname === "/signup")) {
         const dashboardUrl = getDashboardUrl(role)
         return NextResponse.redirect(new URL(dashboardUrl, req.url))
     }
 
     // --- Public routes for non-authenticated users ---
     if (isPublicRoute(req)) {
-        // Root page: redirect non-authenticated users to login
-        if (pathname === "/") {
-            return NextResponse.redirect(new URL("/login", req.url))
-        }
         return NextResponse.next()
     }
 
