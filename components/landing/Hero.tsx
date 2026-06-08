@@ -45,13 +45,13 @@ export const Hero = () => {
                             {/* Auth Buttons */}
                             <div className="flex gap-3 mb-2">
                                 <Link
-                                    href="/sign-in"
+                                    href="/login"
                                     className="font-display text-xs md:text-sm uppercase tracking-wider text-black border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-all duration-300"
                                 >
                                     Log In
                                 </Link>
                                 <Link
-                                    href="/sign-up"
+                                    href="/signup"
                                     className="font-display text-xs md:text-sm uppercase tracking-wider text-white bg-[#ff1a1a] border-2 border-[#ff1a1a] px-4 py-2 hover:bg-black hover:border-black transition-all duration-300"
                                 >
                                     Sign Up

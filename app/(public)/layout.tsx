@@ -1,3 +1,4 @@
+import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import type { Metadata } from 'next';
 
@@ -20,6 +21,7 @@ export default function PublicLayout({
       display: 'block'
     }} className="relative bg-white text-black antialiased font-body">
       <div className="bg-noise"></div>
+      <Navbar />
       <div className="w-full min-h-screen selection:bg-[#ff1a1a] selection:text-white">
         {children}
       </div>
