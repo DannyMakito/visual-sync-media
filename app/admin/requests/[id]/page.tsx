@@ -16,6 +16,7 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { ChatInterface } from "@/components/chat-interface"
+import { formatRand } from "@/lib/utils"
 
 export default function AdminRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params)
@@ -53,7 +54,7 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
             // Send a message to client about the quote
             await createMessageMutation({
                 orderId,
-                content: `We've prepared your quote! The estimated cost is $${quotePrice} and will take approximately ${quoteDays} days. Check the quote tab for more details.`,
+                content: `We've prepared your quote! The estimated cost is ${formatRand(parseFloat(quotePrice))} and will take approximately ${quoteDays} days. Check the quote tab for more details.`,
             })
 
             // Reset form
@@ -247,7 +248,7 @@ export default function AdminRequestDetailPage({ params }: { params: Promise<{ i
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="price">Estimated Price ($)</Label>
+                                    <Label htmlFor="price">Estimated Price (R)</Label>
                                     <Input
                                         id="price"
                                         type="number"

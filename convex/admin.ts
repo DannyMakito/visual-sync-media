@@ -191,3 +191,91 @@ export const getDashboardProjects = query({
         )
     },
 })
+
+// Live data for the admin Insights tab
+export const getInsightMetrics = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) return null
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user || user.role !== "admin") return null
+
+        const users = await ctx.db.query("users").collect()
+        const orders = await ctx.db.query("orders").collect()
+        const projects = await ctx.db.query("projects").collect()
+        const tasks = await ctx.db.query("tasks").collect()
+        const ratings = await ctx.db.query("projectSatisfaction").collect()
+
+        const totalRevenue = projects.reduce((sum, project) => sum + project.dealValue, 0)
+        const totalProjects = projects.length
+        const averageSatisfaction = ratings.length
+            ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
+            : null
+
+        const now = new Date()
+        const userGrowth = Array.from({ length: 7 }, (_, index) => {
+            const date = new Date(now.getFullYear(), now.getMonth() - 6 + index, 1)
+            const month = date.toLocaleString("en-ZA", { month: "short" })
+            const count = users.filter((u) => {
+                const createdAt = new Date(u.createdAt)
+                return createdAt.getFullYear() === date.getFullYear() && createdAt.getMonth() === date.getMonth()
+            }).length
+
+            return { month, users: count }
+        })
+
+        const revenueByService = new Map<string, number>()
+        for (const project of projects) {
+            const order = project.orderId ? orders.find((o) => o._id === project.orderId) : null
+            const service = order?.service || "Internal"
+            const label = service
+                .split("-")
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(" ")
+
+            revenueByService.set(label, (revenueByService.get(label) || 0) + project.dealValue)
+        }
+
+        const serviceRevenue = Array.from(revenueByService.entries())
+            .map(([category, revenue]) => ({ category, revenue }))
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 5)
+
+        const scheduleEvents = [
+            ...projects
+                .filter((project) => project.dueDate && project.status !== "done")
+                .map((project) => ({
+                    id: project._id,
+                    date: project.dueDate!,
+                    title: project.title,
+                    type: project.status === "in-review" ? "review" : "deadline",
+                    source: "Project",
+                })),
+            ...tasks
+                .filter((task) => task.dueDate && task.status !== "done")
+                .map((task) => ({
+                    id: task._id,
+                    date: task.dueDate!,
+                    title: task.title,
+                    type: task.priority === "high" ? "deadline" : "task",
+                    source: "Task",
+                })),
+        ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+        return {
+            totalRevenue,
+            totalProjects,
+            averageSatisfaction,
+            satisfactionCount: ratings.length,
+            userGrowth,
+            serviceRevenue,
+            scheduleEvents: scheduleEvents.slice(0, 20),
+        }
+    },
+})

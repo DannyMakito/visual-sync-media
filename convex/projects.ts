@@ -264,6 +264,12 @@ export const updateProject = mutation({
         if (args.assigneeIds !== undefined) updates.assigneeIds = args.assigneeIds
 
         await ctx.db.patch(args.projectId, updates)
+        if (args.status === "done" && project.orderId) {
+            await ctx.db.patch(project.orderId, {
+                status: "completed",
+                updatedAt: Date.now(),
+            })
+        }
         return await ctx.db.get(args.projectId)
     },
 })

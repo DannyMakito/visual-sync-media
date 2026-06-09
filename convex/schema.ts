@@ -137,4 +137,18 @@ export default defineSchema({
         .index("by_user_convo", ["userId", "orderId", "projectId"])
         .index("by_orderId", ["orderId"])
         .index("by_projectId", ["projectId"]),
+
+    // Client satisfaction ratings for completed projects
+    projectSatisfaction: defineTable({
+        projectId: v.id("projects"),
+        orderId: v.optional(v.id("orders")),
+        clientId: v.id("users"),
+        rating: v.number(),
+        comment: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+        .index("by_projectId", ["projectId"])
+        .index("by_orderId", ["orderId"])
+        .index("by_clientId", ["clientId"]),
 })

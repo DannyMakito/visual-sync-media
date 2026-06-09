@@ -39,7 +39,7 @@ import {
     Check,
     Plus
 } from "lucide-react"
-import { cn, formatRelativeDate } from "@/lib/utils"
+import { cn, formatRand, formatRelativeDate } from "@/lib/utils"
 import { ChatInterface } from "@/components/chat-interface"
 
 const statusConfig = {
@@ -293,7 +293,7 @@ export default function EditorProjectsPage() {
                             <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-xl">
                                 <div>
                                     <span className="text-muted-foreground block text-[10px] uppercase font-bold">Deal Value</span>
-                                    <span className="font-semibold text-green-600">${selectedProject.dealValue}</span>
+                                    <span className="font-semibold text-green-600">{formatRand(selectedProject.dealValue)}</span>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground block text-[10px] uppercase font-bold">Due Date</span>

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,7 +32,7 @@ import {
     Sparkles,
     Briefcase
 } from "lucide-react"
-import { getInitials, formatRelativeDate } from "@/lib/utils"
+import { getInitials, formatRelativeDate, formatRand } from "@/lib/utils"
 import { ChatInterface } from "@/components/chat-interface"
 import { toast } from "sonner"
 import {
@@ -247,37 +247,25 @@ const teamMembers: TeamMember[] = [
     }
 ]
 
-const userGrowthData = [
-    { month: 'Jan', users: 45 },
-    { month: 'Feb', users: 52 },
-    { month: 'Mar', users: 48 },
-    { month: 'Apr', users: 61 },
-    { month: 'May', users: 55 },
-    { month: 'Jun', users: 67 },
-    { month: 'Jul', users: 82 },
-]
-
-const salesData = [
-    { category: 'Editing', revenue: 4200 },
-    { category: 'VFX', revenue: 3800 },
-    { category: 'Sound', revenue: 2900 },
-    { category: 'Coloring', revenue: 3100 },
-    { category: 'Motion', revenue: 2400 },
-]
-
-const calendarEvents = [
-    { date: '2026-02-10', title: 'LumenForge Final Polish', type: 'deadline' },
-    { date: '2026-02-12', title: 'Client Meeting: Nike', type: 'meeting' },
-    { date: '2026-02-15', title: 'Sony Music Video Launch', type: 'event' },
-]
-
 export default function DashboardPage() {
     const stats = useQuery(api.admin.getDashboardStats)
+    const insights = useQuery(api.admin.getInsightMetrics)
     const liveProjects = useQuery(api.admin.getDashboardProjects) || []
     const pendingOrders = useQuery(api.orders.getPendingOrders) || []
     
     const [forwardingRequest, setForwardingRequest] = useState<any>(null)
     const [selectedProject, setSelectedProject] = useState<any>(null)
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+    const scheduleEvents = insights?.scheduleEvents || []
+    const selectedDateKey = selectedDate ? toDateKey(selectedDate) : ""
+    const selectedDateEvents = useMemo(
+        () => scheduleEvents.filter((event) => event.date === selectedDateKey),
+        [scheduleEvents, selectedDateKey]
+    )
+    const eventDates = useMemo(
+        () => scheduleEvents.map((event) => parseDateKey(event.date)),
+        [scheduleEvents]
+    )
 
     const handleAssign = (editor: any) => {
         toast.success(`Forwarded "${forwardingRequest.request}" to ${editor.name} `)
@@ -543,24 +531,24 @@ export default function DashboardPage() {
                     <div className="grid gap-4 md:grid-cols-3">
                         <KPICard
                             title="Total Revenue"
-                            value="$24,500"
-                            change="+12.5%"
+                            value={formatRand(insights?.totalRevenue || 0)}
+                            change="Live"
                             trend="up"
                             icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
                             chartColor="bg-blue-500"
                         />
                         <KPICard
-                            title="Active Projects"
-                            value="12"
-                            change="+2"
+                            title="Total Projects"
+                            value={(insights?.totalProjects || 0).toString()}
+                            change="Live"
                             trend="up"
                             icon={<Briefcase className="h-4 w-4 text-orange-500" />}
                             chartColor="bg-orange-500"
                         />
                         <KPICard
                             title="Client Satisfaction"
-                            value="4.9/5"
-                            change="+0.2"
+                            value={insights?.averageSatisfaction ? `${insights.averageSatisfaction.toFixed(1)}/5` : "No ratings"}
+                            change={insights?.satisfactionCount ? `${insights.satisfactionCount} ratings` : "Awaiting ratings"}
                             trend="up"
                             icon={<Sparkles className="h-4 w-4 text-green-500" />}
                             chartColor="bg-green-500"
@@ -577,7 +565,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="h-[250px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={userGrowthData}>
+                                    <AreaChart data={insights?.userGrowth || []}>
                                         <defs>
                                             <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -626,7 +614,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="h-[250px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={salesData} layout="vertical">
+                                    <BarChart data={insights?.serviceRevenue || []} layout="vertical">
                                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--muted-foreground) / 0.2)" />
                                         <XAxis type="number" hide />
                                         <YAxis
@@ -639,6 +627,7 @@ export default function DashboardPage() {
                                         />
                                         <Tooltip
                                             cursor={{ fill: 'transparent' }}
+                                            formatter={(value) => formatRand(Number(value))}
                                             contentStyle={{
                                                 borderRadius: '12px',
                                                 border: '1px solid hsl(var(--border))',
@@ -648,7 +637,7 @@ export default function DashboardPage() {
                                             }}
                                         />
                                         <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
-                                            {salesData.map((entry, index) => {
+                                            {(insights?.serviceRevenue || []).map((entry, index) => {
                                                 const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#6366f1']
                                                 return (
                                                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
@@ -667,29 +656,42 @@ export default function DashboardPage() {
                             <h3 className="font-semibold text-base mb-4 w-full">Event Calendar</h3>
                             <CalendarComponent
                                 mode="single"
-                                selected={new Date()}
+                                selected={selectedDate}
+                                onSelect={setSelectedDate}
+                                modifiers={{ scheduled: eventDates }}
+                                modifiersClassNames={{ scheduled: "bg-primary/10 text-primary font-bold" }}
                                 className="rounded-md border-none"
                             />
                         </Card>
                         <Card className="rounded-2xl border bg-card shadow-sm p-6 md:col-span-4">
-                            <h3 className="font-semibold text-base mb-4">Upcoming Schedule</h3>
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <h3 className="font-semibold text-base">Upcoming Schedule</h3>
+                                <Badge variant="secondary" className="font-normal">
+                                    {selectedDate ? selectedDate.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" }) : "All dates"}
+                                </Badge>
+                            </div>
                             <div className="space-y-4">
-                                {calendarEvents.map((event, i) => (
-                                    <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 group hover:bg-muted/50 transition-colors">
-                                        <div className={`p-2 rounded-lg ${event.type === 'deadline' ? 'bg-red-100 text-red-600' :
-                                            event.type === 'meeting' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
-                                            }`}>
+                                {(selectedDateEvents.length > 0 ? selectedDateEvents : scheduleEvents.slice(0, 6)).map((event) => (
+                                    <div key={`${event.source}-${event.id}`} className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 group hover:bg-muted/50 transition-colors">
+                                        <div className={`p-2 rounded-lg ${getEventTone(event.type)}`}>
                                             <Calendar className="h-4 w-4" />
                                         </div>
                                         <div className="flex-1">
                                             <div className="font-medium text-sm">{event.title}</div>
-                                            <div className="text-xs text-muted-foreground">{event.date}</div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {formatScheduleDate(event.date)} · {event.source}
+                                            </div>
                                         </div>
-                                        <Badge variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                            View
+                                        <Badge variant="outline" className="capitalize">
+                                            {event.type}
                                         </Badge>
                                     </div>
                                 ))}
+                                {scheduleEvents.length === 0 && (
+                                    <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                                        No upcoming project or task due dates yet.
+                                    </div>
+                                )}
                             </div>
                         </Card>
                     </div>
@@ -759,6 +761,32 @@ export default function DashboardPage() {
             </Dialog>
         </div >
     )
+}
+
+function toDateKey(date: Date) {
+    const year = date.getFullYear()
+    const month = `${date.getMonth() + 1}`.padStart(2, "0")
+    const day = `${date.getDate()}`.padStart(2, "0")
+    return `${year}-${month}-${day}`
+}
+
+function parseDateKey(date: string) {
+    const [year, month, day] = date.split("-").map(Number)
+    return new Date(year, month - 1, day)
+}
+
+function formatScheduleDate(date: string) {
+    return parseDateKey(date).toLocaleDateString("en-ZA", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+    })
+}
+
+function getEventTone(type: string) {
+    if (type === "deadline") return "bg-red-100 text-red-600"
+    if (type === "review") return "bg-blue-100 text-blue-600"
+    return "bg-green-100 text-green-600"
 }
 
 function KPICard({ title, value, change, trend, icon, chartColor }: any) {

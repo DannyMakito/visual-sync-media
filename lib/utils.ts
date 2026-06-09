@@ -11,6 +11,15 @@ export function getInitials(name: string) {
     if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase()
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
+
+export function formatRand(value: number) {
+    return new Intl.NumberFormat("en-ZA", {
+        style: "currency",
+        currency: "ZAR",
+        maximumFractionDigits: 0,
+    }).format(value)
+}
+
 export function formatRelativeDate(dateStr: string) {
     if (!dateStr) return "N/A"
     try {

@@ -3,18 +3,20 @@
 import { useEffect, useState } from "react"
 import React from "react"
 import Link from "next/link"
-import { ArrowLeft, Download, MessageSquare, Send } from "lucide-react"
+import { ArrowLeft, Download, MessageSquare, Send, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { formatDate, formatDateTime } from "@/lib/order-service"
+import { formatRand } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { ChatInterface } from "@/components/chat-interface"
+import { toast } from "sonner"
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params)
@@ -25,6 +27,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     
     const orderId = isLegacyId ? undefined : (id as Id<"orders">)
     const order = useQuery(api.orders.getOrderById, orderId ? { orderId } : "skip")
+    const submitSatisfaction = useMutation(api.orders.submitProjectSatisfaction)
+    const [rating, setRating] = useState(0)
+    const [satisfactionComment, setSatisfactionComment] = useState("")
+    const [isSubmittingRating, setIsSubmittingRating] = useState(false)
+
+    useEffect(() => {
+        if (order?.satisfaction) {
+            setRating(order.satisfaction.rating)
+            setSatisfactionComment(order.satisfaction.comment || "")
+        }
+    }, [order?.satisfaction])
 
     if (isLegacyId) {
         return (
@@ -102,6 +115,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     }
 
     const statusConfig = getStatusConfig(order.status)
+    const canRateProject = order.project?.status === "done"
+
+    const handleSatisfactionSubmit = async () => {
+        if (!orderId || rating < 1) return
+
+        try {
+            setIsSubmittingRating(true)
+            await submitSatisfaction({
+                orderId,
+                rating,
+                comment: satisfactionComment.trim() || undefined,
+            })
+            toast.success("Thanks for rating your project.")
+        } catch (error) {
+            console.error("Failed to submit satisfaction rating:", error)
+            toast.error("Could not save your rating. Please try again.")
+        } finally {
+            setIsSubmittingRating(false)
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -134,6 +167,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     <TabsTrigger value="quote">
                         {order.quote ? "Quote" : "Awaiting Quote"}
                     </TabsTrigger>
+                    {canRateProject && (
+                        <TabsTrigger value="satisfaction">Satisfaction</TabsTrigger>
+                    )}
                     <TabsTrigger value="messages">Messages</TabsTrigger>
                 </TabsList>
 
@@ -222,7 +258,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             ESTIMATED PRICE
                                         </p>
                                         <p className="text-3xl font-bold text-blue-600">
-                                            ${order.quote.price}
+                                            {formatRand(order.quote.price)}
                                         </p>
                                     </div>
                                     <div className="p-4 bg-blue-50 rounded-lg">
@@ -263,6 +299,61 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         </div>
                     )}
                 </TabsContent>
+
+                {canRateProject && (
+                    <TabsContent value="satisfaction">
+                        <div className="-mx-4 sm:mx-0">
+                            <Card className="rounded-none sm:rounded-lg border-x-0 sm:border-x shadow-none sm:shadow">
+                                <CardHeader>
+                                    <CardTitle>Rate Your Project</CardTitle>
+                                    <CardDescription>
+                                        Your feedback helps us measure client satisfaction and improve future work.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div>
+                                        <p className="text-sm font-semibold text-muted-foreground mb-3">
+                                            OVERALL SATISFACTION
+                                        </p>
+                                        <div className="flex gap-2">
+                                            {[1, 2, 3, 4, 5].map((value) => (
+                                                <button
+                                                    key={value}
+                                                    type="button"
+                                                    onClick={() => setRating(value)}
+                                                    className="h-11 w-11 rounded-full border flex items-center justify-center transition-colors hover:bg-yellow-50"
+                                                    aria-label={`Rate ${value} out of 5`}
+                                                >
+                                                    <Star
+                                                        className={`h-5 w-5 ${value <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-muted-foreground mb-3">
+                                            OPTIONAL FEEDBACK
+                                        </p>
+                                        <Textarea
+                                            value={satisfactionComment}
+                                            onChange={(event) => setSatisfactionComment(event.target.value)}
+                                            placeholder="Tell us what worked well or what we can improve."
+                                            className="min-h-28"
+                                        />
+                                    </div>
+                                    <Button
+                                        onClick={handleSatisfactionSubmit}
+                                        disabled={rating < 1 || isSubmittingRating}
+                                        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                                    >
+                                        {order.satisfaction ? "Update Rating" : "Submit Rating"}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                )}
 
                 {/* Messages Tab — full-bleed on mobile, fills remaining viewport */}
                 <TabsContent

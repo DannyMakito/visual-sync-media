@@ -52,7 +52,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { cn, formatRand } from "@/lib/utils"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
@@ -335,7 +335,7 @@ export default function TasksPage() {
                                 )}>
                                     {isAdmin && (
                                         <div className="px-3 py-2 bg-black/[0.03] flex justify-between items-center text-xs font-bold border-b">
-                                            <span className="text-green-600">${project.dealValue}</span>
+                                            <span className="text-green-600">{formatRand(project.dealValue)}</span>
                                             <div className="flex items-center gap-2">
                                                 <button onClick={() => handleDeleteProject(project._id)} className="text-red-400 hover:text-red-500 transition-colors">
                                                     <Trash2 size={12} />
@@ -457,7 +457,7 @@ export default function TasksPage() {
                                                     </p>
                                                 </div>
                                                 <div className="text-right shrink-0">
-                                                    <p className="text-sm font-black text-green-600">${order.quote?.price}</p>
+                                                    <p className="text-sm font-black text-green-600">{formatRand(order.quote?.price || 0)}</p>
                                                 </div>
                                             </div>
                                         </button>

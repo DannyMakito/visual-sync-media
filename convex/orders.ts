@@ -156,7 +156,18 @@ export const getOrderById = query({
         if (!order) return null
 
         const client = await ctx.db.get(order.clientId)
-        return { ...order, client }
+        const project = await ctx.db
+            .query("projects")
+            .withIndex("by_orderId", (q) => q.eq("orderId", args.orderId))
+            .unique()
+        const satisfaction = project
+            ? await ctx.db
+                .query("projectSatisfaction")
+                .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
+                .unique()
+            : null
+
+        return { ...order, client, project, satisfaction }
     },
 })
 
@@ -207,5 +218,64 @@ export const updateOrder = mutation({
 
         await ctx.db.patch(args.orderId, updates)
         return await ctx.db.get(args.orderId)
+    },
+})
+
+// Submit or update client satisfaction for a completed project
+export const submitProjectSatisfaction = mutation({
+    args: {
+        orderId: v.id("orders"),
+        rating: v.number(),
+        comment: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) throw new Error("Not authenticated")
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user || user.role !== "client") throw new Error("Only clients can rate projects")
+
+        const order = await ctx.db.get(args.orderId)
+        if (!order) throw new Error("Order not found")
+        if (order.clientId !== user._id) throw new Error("Not authorized")
+
+        const project = await ctx.db
+            .query("projects")
+            .withIndex("by_orderId", (q) => q.eq("orderId", args.orderId))
+            .unique()
+
+        if (!project) throw new Error("Project not found")
+        if (project.status !== "done") throw new Error("Project must be complete before rating")
+        if (args.rating < 1 || args.rating > 5) throw new Error("Rating must be between 1 and 5")
+
+        const now = Date.now()
+        const comment = args.comment?.trim() || undefined
+        const existing = await ctx.db
+            .query("projectSatisfaction")
+            .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
+            .unique()
+
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                rating: args.rating,
+                comment,
+                updatedAt: now,
+            })
+            return existing._id
+        }
+
+        return await ctx.db.insert("projectSatisfaction", {
+            projectId: project._id,
+            orderId: args.orderId,
+            clientId: user._id,
+            rating: args.rating,
+            comment,
+            createdAt: now,
+            updatedAt: now,
+        })
     },
 })

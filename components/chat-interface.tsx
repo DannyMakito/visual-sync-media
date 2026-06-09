@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Send, User, Bot, Paperclip } from "lucide-react"
+import { Send, User, Paperclip } from "lucide-react"
 import { cn, getInitials, formatChatDate } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -24,10 +24,18 @@ export function ChatInterface({ orderId, projectId, title, showHead = true }: Ch
     const [newMessage, setNewMessage] = useState("")
     const scrollRef = useRef<HTMLDivElement>(null)
 
-    const messages = useQuery(
-        orderId ? api.messages.getOrderMessages : api.messages.getProjectMessages,
-        orderId ? { orderId } : { projectId: projectId! }
-    ) || []
+    const orderMessages = useQuery(
+        api.messages.getOrderMessages,
+        orderId ? { orderId } : "skip"
+    )
+    const projectMessages = useQuery(
+        api.messages.getProjectMessages,
+        !orderId && projectId ? { projectId } : "skip"
+    )
+    const messages = useMemo(
+        () => (orderId ? orderMessages : projectMessages) || [],
+        [orderId, orderMessages, projectMessages]
+    )
 
     const sendMessage = useMutation(api.messages.createMessage)
     const markRead = useMutation(api.messages.markRead)
@@ -38,14 +46,14 @@ export function ChatInterface({ orderId, projectId, title, showHead = true }: Ch
         }
         
         // Mark as read when messages change (if we are the one viewing it)
-        if (messages.length > 0) {
+        if (messages.length > 0 && (orderId || projectId)) {
             markRead({ orderId, projectId }).catch(console.error)
         }
     }, [messages, orderId, projectId, markRead])
 
     const handleSend = async (e?: React.FormEvent) => {
         e?.preventDefault()
-        if (!newMessage.trim()) return
+        if (!newMessage.trim() || (!orderId && !projectId)) return
 
         try {
             await sendMessage({
