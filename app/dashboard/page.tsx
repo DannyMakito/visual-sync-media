@@ -173,6 +173,10 @@ interface TeamMember {
     avatar: string
     currentTask: string
     project: string
+    projects: number
+    lastUpdated: string
+    latestMessage: string
+    latestProject: string
     hoursLogged: number
     capacity: number
     status: 'online' | 'busy' | 'offline'
@@ -186,6 +190,10 @@ const teamMembers: TeamMember[] = [
         avatar: "/avatars/01.png",
         currentTask: "Reviewing final cut for LumenForge",
         project: "LumenForge Launch",
+        projects: 6,
+        lastUpdated: "2h ago",
+        latestMessage: "Client requested a tighter opening sequence sync.",
+        latestProject: "LumenForge Launch",
         hoursLogged: 34,
         capacity: 40,
         status: "online"
@@ -197,6 +205,10 @@ const teamMembers: TeamMember[] = [
         avatar: "/avatars/02.png",
         currentTask: "Grading sequence 4 for Nike Ad",
         project: "Nike Summer Campaign",
+        projects: 3,
+        lastUpdated: "45m ago",
+        latestMessage: "Need to preserve the warm tonality for the hero shot.",
+        latestProject: "Nike Summer Campaign",
         hoursLogged: 28,
         capacity: 40,
         status: "busy"
@@ -208,6 +220,10 @@ const teamMembers: TeamMember[] = [
         avatar: "/avatars/03.png",
         currentTask: "Mixing audio for EchoSuite tutorial",
         project: "EchoSuite Onboarding",
+        projects: 4,
+        lastUpdated: "1h ago",
+        latestMessage: "Audio levels are ready for final review on the tutorial video.",
+        latestProject: "EchoSuite Onboarding",
         hoursLogged: 38,
         capacity: 40,
         status: "busy"
@@ -219,6 +235,10 @@ const teamMembers: TeamMember[] = [
         avatar: "/avatars/04.png",
         currentTask: "Animating logo reveal",
         project: "NebulaCart Identity",
+        projects: 2,
+        lastUpdated: "30m ago",
+        latestMessage: "Added the final motion polish to the logo intro.",
+        latestProject: "NebulaCart Identity",
         hoursLogged: 12,
         capacity: 20,
         status: "online"
@@ -230,6 +250,10 @@ const teamMembers: TeamMember[] = [
         avatar: "/avatars/05.png",
         currentTask: "Syncing rough cuts",
         project: "Internal Training",
+        projects: 1,
+        lastUpdated: "4h ago",
+        latestMessage: "Rough cut is synced and ready for first review.",
+        latestProject: "Internal Training",
         hoursLogged: 40,
         capacity: 40,
         status: "offline"
@@ -241,6 +265,10 @@ const teamMembers: TeamMember[] = [
         avatar: "/avatars/06.png",
         currentTask: "Compositing green screen shots",
         project: "Sci-Fi Short",
+        projects: 5,
+        lastUpdated: "3h ago",
+        latestMessage: "Green screen composites are ready for secondary color matching.",
+        latestProject: "Sci-Fi Short",
         hoursLogged: 5,
         capacity: 35,
         status: "online"
@@ -903,7 +931,7 @@ function RequestItem({ client, request, time, details, priority, onForward }: an
             </div>
             <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">{client}</span>
+                    <span className="text-sm font-semibold">Request from {client}</span>
                     <span className="text-xs text-muted-foreground">{time}</span>
                 </div>
                 <div className="text-sm font-medium">{request}</div>
@@ -958,6 +986,11 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
                 </div>
 
                 <div className="space-y-4">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{member.projects} projects</span>
+                        <span>Updated {member.lastUpdated}</span>
+                    </div>
+
                     <div>
                         <div className="flex justify-between text-xs mb-1.5">
                             <span className="text-muted-foreground">Workload</span>
@@ -969,10 +1002,10 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
                     <div className="bg-muted/50 rounded-xl p-3 space-y-1.5">
                         <div className="flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Current Focus</span>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Latest Project Message</span>
                         </div>
-                        <p className="text-sm font-medium leading-tight">{member.currentTask}</p>
-                        <p className="text-xs text-muted-foreground">on <span className="text-foreground font-medium">{member.project}</span></p>
+                        <p className="text-sm font-medium leading-tight">{member.latestMessage}</p>
+                        <p className="text-xs text-muted-foreground">on <span className="text-foreground font-medium">{member.latestProject}</span></p>
                     </div>
                 </div>
             </CardContent>
