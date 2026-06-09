@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
+import { DeadlineChip } from "@/components/deadline-chip"
 import {
     Plus,
     Filter,
@@ -87,6 +88,7 @@ export default function TasksPage() {
     const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false)
     const [selectedOrderId, setSelectedOrderId] = useState<Id<"orders"> | null>(null)
     const [selectedAssignees, setSelectedAssignees] = useState<string[]>([])
+    const [selectedDueDate, setSelectedDueDate] = useState("")
     
     const [expandedProjectId, setExpandedProjectId] = useState<Id<"projects"> | null>(null)
     const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
@@ -129,12 +131,14 @@ export default function TasksPage() {
         try {
             await createProjectMutation({
                 orderId: selectedOrderId,
-                assigneeIds: selectedAssignees as Id<"users">[]
+                assigneeIds: selectedAssignees as Id<"users">[],
+                dueDate: selectedDueDate || undefined,
             })
             console.log("Project created successfully")
             setIsCreateProjectOpen(false)
             setSelectedOrderId(null)
             setSelectedAssignees([])
+            setSelectedDueDate("")
             toast.success("Project created and added to production pipeline.")
         } catch (error) {
             console.error("Create project error:", error)
@@ -386,9 +390,21 @@ export default function TasksPage() {
                                         )}
 
                                         <div className="flex items-center justify-between pt-2 border-t border-muted text-xs text-muted-foreground font-medium uppercase tracking-tighter">
-                                            <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2">
                                                 {project.mediaSpecs.ratio === '9:16' ? <Smartphone size={12} /> : <Monitor size={12} />}
-                                                <span>{project.dueDate ? project.dueDate.split('-').slice(1).join('/') : 'N/A'}</span>
+                                                <DeadlineChip
+                                                    dueDate={project.dueDate}
+                                                    status={project.status}
+                                                    completedAt={project.completedAt}
+                                                    isAdmin={isAdmin}
+                                                    onSave={async (newDate) => {
+                                                        await updateProjectMutation({
+                                                            projectId: project._id,
+                                                            dueDate: newDate || "",
+                                                        })
+                                                    }}
+                                                    className="max-w-[180px]"
+                                                />
                                             </div>
                                             {project.readyForClient && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none h-4 text-[10px]">SUBMITTED</Badge>}
                                         </div>
@@ -417,7 +433,14 @@ export default function TasksPage() {
             </section>
 
             {/* Create Project Dialog */}
-            <Dialog open={isCreateProjectOpen} onOpenChange={setIsCreateProjectOpen}>
+            <Dialog open={isCreateProjectOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setSelectedOrderId(null)
+                    setSelectedAssignees([])
+                    setSelectedDueDate("")
+                }
+                setIsCreateProjectOpen(open)
+            }}>
                 <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
                         <DialogTitle className="text-base font-bold flex items-center gap-2 text-orange-500">
@@ -439,7 +462,10 @@ export default function TasksPage() {
                                     {quotedOrders.map((order: any) => (
                                         <button
                                             key={order._id}
-                                            onClick={() => setSelectedOrderId(order._id)}
+                                            onClick={() => {
+                                                setSelectedOrderId(order._id)
+                                                setSelectedDueDate(order.dueDate || "")
+                                            }}
                                             className={cn(
                                                 "w-full p-4 rounded-xl border-2 text-left transition-all",
                                                 selectedOrderId === order._id
@@ -464,6 +490,17 @@ export default function TasksPage() {
                                     ))}
                                 </div>
                             )}
+                        </div>
+
+                        {/* Deadline Override */}
+                        <div className="space-y-3">
+                            <Label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Deadline</Label>
+                            <Input
+                                type="date"
+                                value={selectedDueDate}
+                                onChange={(e) => setSelectedDueDate(e.target.value)}
+                                placeholder="Optional deadline"
+                            />
                         </div>
 
                         {/* Editor Assignment */}

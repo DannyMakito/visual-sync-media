@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { DeadlineChip } from "@/components/deadline-chip"
 import {
     Dialog,
     DialogContent,
@@ -220,9 +221,14 @@ export default function EditorProjectsPage() {
                                                 <span>{project.client?.name || 'Unknown Client'}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                <Clock className="h-4 w-4" />
-                                                <span>Due: {project.dueDate ? formatDate(project.dueDate) : 'N/A'}</span>
-                                            </div>
+                                            <Clock className="h-4 w-4" />
+                                            <DeadlineChip
+                                                dueDate={project.dueDate}
+                                                status={project.status}
+                                                completedAt={project.completedAt}
+                                                className="max-w-[220px]"
+                                            />
+                                        </div>
                                             <div className="flex items-center gap-1">
                                                 <MessageSquare className="h-4 w-4" />
                                                 <span>{project.internalNotes.length} notes</span>

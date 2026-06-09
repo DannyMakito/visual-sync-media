@@ -334,14 +334,46 @@ export default function DashboardPage() {
 
                 <TabsContent value="overview" className="space-y-6">
                     {/* KPI Cards */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <KPICard
                             title="Videos Produced"
-                            value={stats?.totalProduced?.toString() || "0"}
+                            value={stats?.completedProjectsCount?.toString() || "0"}
                             change="+3.2%"
                             trend="up"
                             icon={<Video className="h-4 w-4 text-purple-500" />}
                             chartColor="bg-purple-500"
+                        />
+                        <KPICard
+                            title="Active Projects"
+                            value={stats?.activeProjectsCount?.toString() || "0"}
+                            change="+1.8%"
+                            trend="up"
+                            icon={<Sparkles className="h-4 w-4 text-sky-500" />}
+                            chartColor="bg-sky-500"
+                        />
+                        <KPICard
+                            title="Due Soon"
+                            value={stats?.dueSoonCount?.toString() || "0"}
+                            change="+2.2%"
+                            trend="up"
+                            icon={<Clock className="h-4 w-4 text-amber-500" />}
+                            chartColor="bg-amber-500"
+                        />
+                        <KPICard
+                            title="Overdue"
+                            value={stats?.overdueCount?.toString() || "0"}
+                            change="-1.1%"
+                            trend="down"
+                            icon={<AlertCircle className="h-4 w-4 text-red-500" />}
+                            chartColor="bg-red-500"
+                        />
+                        <KPICard
+                            title="Completed Projects"
+                            value={stats?.completedProjectsCount?.toString() || "0"}
+                            change="+4.0%"
+                            trend="up"
+                            icon={<Briefcase className="h-4 w-4 text-emerald-500" />}
+                            chartColor="bg-emerald-500"
                         />
                         <KPICard
                             title="On-Time Delivery"
@@ -355,23 +387,10 @@ export default function DashboardPage() {
                             <CardContent className="p-6">
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Pending Approvals</span>
-                                        <Clock className="h-4 w-4 text-orange-500" />
+                                        <span className="text-sm font-medium text-muted-foreground">Completed On Time</span>
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                                     </div>
-                                    <div className="flex items-end justify-between">
-                                        <div className="text-3xl font-bold">{stats?.pendingApprovals || 0}</div>
-                                        <div className="flex -space-x-2">
-                                            {[1, 2, 3].map((i) => (
-                                                <Avatar key={i} className="h-8 w-8 border-2 border-background">
-                                                    <AvatarImage src={`/avatars/0${i}.png`} />
-                                                    <AvatarFallback>U{i}</AvatarFallback>
-                                                </Avatar>
-                                            ))}
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium transition-colors hover:bg-muted/80">
-                                                +4
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <div className="text-3xl font-bold">{stats?.completedOnTime || 0}</div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -379,18 +398,10 @@ export default function DashboardPage() {
                             <CardContent className="p-6">
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Missed Deadlines</span>
-                                        <AlertCircle className="h-4 w-4 text-red-500" />
+                                        <span className="text-sm font-medium text-muted-foreground">Completed Late</span>
+                                        <AlertCircle className="h-4 w-4 text-amber-500" />
                                     </div>
-                                    <div className="flex items-end justify-between">
-                                        <div className="text-3xl font-bold">2</div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="secondary" className="bg-red-50 text-red-700 hover:bg-red-100 border-red-100 font-normal px-2 py-1">
-                                                LumenForge
-                                            </Badge>
-                                            <span className="text-xs text-muted-foreground">+1</span>
-                                        </div>
-                                    </div>
+                                    <div className="text-3xl font-bold">{stats?.completedLate || 0}</div>
                                 </div>
                             </CardContent>
                         </Card>

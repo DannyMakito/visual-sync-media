@@ -133,16 +133,43 @@ export const getDashboardStats = query({
         const pendingApprovals = allOrders.filter(o => o.status === "quoted").length
         const awaitingQuotes = allOrders.filter(o => o.status === "awaiting-quote").length
         const activeProjectsCount = allProjects.filter(p => p.status !== "done").length
-        const totalProduced = allProjects.filter(p => p.status === "done").length
+        const completedProjectsCount = allProjects.filter(p => p.status === "done").length
+
+        const now = Date.now()
+        const dueSoonCount = allProjects.filter((project) => {
+            if (project.status === "done" || !project.dueDate) return false
+            const dueDateMs = new Date(project.dueDate).getTime()
+            const daysLeft = Math.ceil((dueDateMs - now) / (1000 * 60 * 60 * 24))
+            return daysLeft >= 0 && daysLeft <= 2
+        }).length
+
+        const overdueCount = allProjects.filter((project) => {
+            if (project.status === "done" || !project.dueDate) return false
+            const dueDateMs = new Date(project.dueDate).getTime()
+            return dueDateMs < now
+        }).length
+
+        const completedWithDue = allProjects.filter((project) => project.status === "done" && project.dueDate && project.completedAt)
+        const completedOnTime = completedWithDue.filter((project) => project.completedAt! <= new Date(project.dueDate!).getTime()).length
+        const completedLate = completedWithDue.length - completedOnTime
+        const completedNoDeadline = allProjects.filter((project) => project.status === "done" && !project.dueDate).length
+
+        const onTimeDelivery = completedWithDue.length > 0
+            ? Math.round((completedOnTime / completedWithDue.length) * 100)
+            : 0
 
         return {
             totalRevenue,
             pendingApprovals,
             awaitingQuotes,
             activeProjectsCount,
-            totalProduced,
-            onTimeDelivery: 92, // Mock for now
-            missedDeadlines: 1, // Mock for now
+            completedProjectsCount,
+            dueSoonCount,
+            overdueCount,
+            completedOnTime,
+            completedLate,
+            completedNoDeadline,
+            onTimeDelivery,
         }
     },
 })
