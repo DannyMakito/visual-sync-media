@@ -73,6 +73,7 @@ export default defineSchema({
         assigneeIds: v.array(v.id("users")),
         progress: v.number(),
         dueDate: v.optional(v.string()),
+        completedAt: v.optional(v.number()),
         driveLinks: v.object({
             raw: v.string(),
             working: v.string(),

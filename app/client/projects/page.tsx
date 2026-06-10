@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
+import { DeadlineChip } from "@/components/deadline-chip"
 import { MessageSquare, Loader2 } from "lucide-react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -58,6 +59,12 @@ export default function ClientProjectsPage() {
                                         Last updated {new Date(project.updatedAt).toLocaleDateString()}
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        <DeadlineChip
+                                            dueDate={project.dueDate}
+                                            status={project.status}
+                                            completedAt={project.completedAt}
+                                            className="max-w-[220px]"
+                                        />
                                         {project.orderId && (
                                             <Link href={`/client/orders/${project.orderId}`}>
                                                 <Button variant="outline" size="sm">

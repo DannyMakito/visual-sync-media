@@ -68,3 +68,96 @@ export function formatChatDate(dateStr: string) {
         return dateStr
     }
 }
+
+export type DeadlineStatusKey =
+    | "completedOnTime"
+    | "completedLate"
+    | "completedNoDeadline"
+    | "onTrack"
+    | "dueSoon"
+    | "overdue"
+    | "noDeadline"
+
+export interface DeadlineStatus {
+    key: DeadlineStatusKey
+    label: string
+    color: "green" | "amber" | "red" | "gray"
+    daysLeft?: number
+}
+
+export function getDeadlineStatus(
+    dueDate?: string,
+    status?: string,
+    completedAt?: number
+): DeadlineStatus {
+    if (!dueDate) {
+        if (status === "done") {
+            return {
+                key: "completedNoDeadline",
+                label: "Completed (No Deadline)",
+                color: "gray",
+            }
+        }
+
+        return {
+            key: "noDeadline",
+            label: "No Deadline",
+            color: "gray",
+        }
+    }
+
+    const dueDateMs = new Date(dueDate).getTime()
+    const now = Date.now()
+    const daysLeft = Math.ceil((dueDateMs - now) / (1000 * 60 * 60 * 24))
+
+    if (status === "done") {
+        if (completedAt) {
+            if (completedAt <= dueDateMs) {
+                return {
+                    key: "completedOnTime",
+                    label: "Completed On Time",
+                    color: "green",
+                    daysLeft,
+                }
+            }
+            return {
+                key: "completedLate",
+                label: "Completed Late",
+                color: "amber",
+                daysLeft,
+            }
+        }
+
+        return {
+            key: dueDateMs >= now ? "completedOnTime" : "completedLate",
+            label: dueDateMs >= now ? "Completed On Time" : "Completed Late",
+            color: dueDateMs >= now ? "green" : "amber",
+            daysLeft,
+        }
+    }
+
+    if (daysLeft < 0) {
+        return {
+            key: "overdue",
+            label: "Overdue",
+            color: "red",
+            daysLeft,
+        }
+    }
+
+    if (daysLeft <= 2) {
+        return {
+            key: "dueSoon",
+            label: "Due Soon",
+            color: "amber",
+            daysLeft,
+        }
+    }
+
+    return {
+        key: "onTrack",
+        label: "On Track",
+        color: "green",
+        daysLeft,
+    }
+}

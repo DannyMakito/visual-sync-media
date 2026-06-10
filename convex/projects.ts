@@ -6,6 +6,7 @@ export const createProject = mutation({
     args: {
         orderId: v.id("orders"),
         assigneeIds: v.array(v.id("users")),
+        dueDate: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity()
@@ -40,7 +41,7 @@ export const createProject = mutation({
             status: "todo",
             assigneeIds: args.assigneeIds,
             progress: 0,
-            dueDate: order.dueDate,
+            dueDate: args.dueDate ?? order.dueDate,
             driveLinks: {
                 raw: order.rawAssetsLink || "",
                 working: "",
@@ -81,6 +82,7 @@ export const createInternalProject = mutation({
         title: v.string(),
         description: v.string(),
         assigneeIds: v.array(v.id("users")),
+        dueDate: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity()
@@ -102,6 +104,7 @@ export const createInternalProject = mutation({
             status: "todo",
             assigneeIds: args.assigneeIds,
             progress: 0,
+            dueDate: args.dueDate,
             driveLinks: { raw: "", working: "" },
             mediaSpecs: { duration: "N/A", ratio: "16:9" },
             internalNotes: [],
@@ -229,6 +232,7 @@ export const updateProject = mutation({
         ),
         readyForClient: v.optional(v.boolean()),
         assigneeIds: v.optional(v.array(v.id("users"))),
+        dueDate: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity()
@@ -256,12 +260,49 @@ export const updateProject = mutation({
             updatedAt: Date.now(),
         }
 
-        if (args.status !== undefined) updates.status = args.status
+        if (args.status !== undefined) {
+            updates.status = args.status
+            if (args.status === "done") {
+                if (!project.completedAt) {
+                    updates.completedAt = Date.now()
+                }
+            } else if (project.status === "done" && project.completedAt) {
+                updates.completedAt = undefined
+            }
+        }
+
         if (args.progress !== undefined) updates.progress = args.progress
         if (args.statusLine !== undefined) updates.statusLine = args.statusLine
         if (args.driveLinks !== undefined) updates.driveLinks = args.driveLinks
         if (args.readyForClient !== undefined) updates.readyForClient = args.readyForClient
         if (args.assigneeIds !== undefined) updates.assigneeIds = args.assigneeIds
+
+        if (args.dueDate !== undefined) {
+            if (user.role !== "admin") {
+                throw new Error("Only admin may update project deadlines")
+            }
+
+            updates.dueDate = args.dueDate || undefined
+            await ctx.db.insert("activityLog", {
+                projectId: project._id,
+                userId: user._id,
+                action: "updated_project_deadline",
+                details: args.dueDate
+                    ? `Deadline set to ${args.dueDate}`
+                    : "Deadline removed",
+                createdAt: Date.now(),
+            })
+        }
+
+        if (args.status === "done" && project.status !== "done") {
+            await ctx.db.insert("activityLog", {
+                projectId: project._id,
+                userId: user._id,
+                action: "completed_project",
+                details: `Project marked as completed`,
+                createdAt: Date.now(),
+            })
+        }
 
         await ctx.db.patch(args.projectId, updates)
         if (args.status === "done" && project.orderId) {
