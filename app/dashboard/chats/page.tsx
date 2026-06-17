@@ -15,7 +15,7 @@ export default function ChatsPage() {
     const [selectedConvo, setSelectedConvo] = useState<any>(null)
 
     return (
-        <div className="flex w-full h-[calc(100vh-10rem)] shadow-sm rounded-lg overflow-hidden border bg-card">
+        <div className="flex w-full h-[calc(100vh-7rem)] shadow-sm rounded-lg overflow-hidden border bg-card">
             {/* Sidebar */}
             <div className="w-80 border-r flex flex-col bg-muted/10">
                 <div className="p-4 border-b flex items-center justify-between bg-background">
