@@ -280,6 +280,8 @@ export default function DashboardPage() {
     const insights = useQuery(api.admin.getInsightMetrics)
     const liveProjects = useQuery(api.admin.getDashboardProjects) || []
     const pendingOrders = useQuery(api.orders.getPendingOrders) || []
+    const allProjects = useQuery(api.projects.getEditorProjects) || []
+    const liveTeamMembers = useQuery(api.users.getAllEditors) || []
     
     const [forwardingRequest, setForwardingRequest] = useState<any>(null)
     const [selectedProject, setSelectedProject] = useState<any>(null)
@@ -527,29 +529,66 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold tracking-tight">Team Overview</h2>
                     </div>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {teamMembers.map((member) => (
-                            <TeamMemberCard key={member.id} member={member} />
-                        ))}
-                    </div>
+                    {liveTeamMembers.length === 0 ? (
+                        <div className="p-12 text-center border-2 border-dashed rounded-2xl opacity-50">
+                            <p className="font-medium">No team members found.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {liveTeamMembers.map((editor: any) => {
+                                const memberData = {
+                                    id: editor._id,
+                                    name: editor.user?.name || "Unknown Editor",
+                                    role: editor.specialties && editor.specialties.length > 0 
+                                        ? editor.specialties.join(", ") 
+                                        : (editor.user?.role || "Editor"),
+                                    avatar: editor.user?.image || "/avatars/01.png",
+                                    currentTask: "Ready for work",
+                                    project: "Various",
+                                    projects: 0,
+                                    lastUpdated: "Just now",
+                                    latestMessage: "Ready for assignments",
+                                    latestProject: "None",
+                                    hoursLogged: 0,
+                                    capacity: 40,
+                                    status: "online" as const
+                                };
+                                return <TeamMemberCard key={editor._id} member={memberData} />;
+                            })}
+                        </div>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="projects" className="space-y-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold tracking-tight">My Personal Projects</h2>
+                        <h2 className="text-2xl font-bold tracking-tight">All Projects</h2>
                         <Button variant="outline" size="sm" className="rounded-full">
                             <Settings className="mr-2 h-3.5 w-3.5" /> Manage View
                         </Button>
                     </div>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {projectsData.slice(0, 3).map((project) => (
-                            <ProjectCard
-                                key={project.id}
-                                {...project}
-                                onClick={() => setSelectedProject(project)}
-                            />
-                        ))}
-                    </div>
+                    {allProjects.length === 0 ? (
+                        <div className="p-12 text-center border-2 border-dashed rounded-2xl opacity-50">
+                            <p className="font-medium">No projects found in the system.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {allProjects.map((project: any) => (
+                                <ProjectCard
+                                    key={project._id}
+                                    id={project._id}
+                                    title={project.title}
+                                    project={project.client?.name || "Unknown Client"}
+                                    time={new Date(project.createdAt).toLocaleDateString()}
+                                    priority="Medium"
+                                    status={project.status}
+                                    comments={project.messages ? project.messages.length : 0}
+                                    attachments={0}
+                                    assignees={project.assignees ? project.assignees.map((a: any) => a.image || "") : []}
+                                    onClick={() => setSelectedProject(project)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="insights" className="space-y-6">

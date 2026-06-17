@@ -1,16 +1,19 @@
+"use client"
+
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-
-const projects = [
-    { id: 1, name: "Brand Video Campaign", client: "Acme Corp", progress: 75, status: "In Progress", dueDate: "Feb 15, 2026" },
-    { id: 2, name: "Social Media Package", client: "TechStart", progress: 100, status: "Completed", dueDate: "Feb 10, 2026" },
-    { id: 3, name: "Product Launch Video", client: "FreshFood", progress: 30, status: "In Progress", dueDate: "Feb 28, 2026" },
-    { id: 4, name: "Corporate Training Series", client: "BigBank", progress: 50, status: "In Progress", dueDate: "Mar 5, 2026" },
-    { id: 5, name: "Event Highlights Reel", client: "EventPro", progress: 0, status: "Pending", dueDate: "Mar 10, 2026" },
-]
+import { FolderKanban } from "lucide-react"
 
 export default function AdminProjectsPage() {
+    const projects = useQuery(api.projects.getEditorProjects)
+
+    if (projects === undefined) {
+        return <div className="text-center py-8">Loading projects...</div>
+    }
+
     return (
         <div className="space-y-6">
             <div>
@@ -18,33 +21,48 @@ export default function AdminProjectsPage() {
                 <p className="text-muted-foreground">Manage and monitor all projects</p>
             </div>
 
-            <div className="grid gap-4">
-                {projects.map((project) => (
-                    <Card key={project.id}>
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-lg">{project.name}</CardTitle>
-                                    <CardDescription>{project.client}</CardDescription>
+            {projects.length > 0 ? (
+                <div className="grid gap-4">
+                    {projects.map((project: any) => (
+                        <Card key={project._id}>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg">{project.title}</CardTitle>
+                                        <CardDescription>{project.client?.name || "Unknown Client"}</CardDescription>
+                                    </div>
+                                    <Badge variant={project.status === "done" ? "default" : project.status === "in-progress" ? "secondary" : "outline"} className="capitalize">
+                                        {project.status.replace(/-/g, " ")}
+                                    </Badge>
                                 </div>
-                                <Badge variant={project.status === "Completed" ? "default" : project.status === "In Progress" ? "secondary" : "outline"}>
-                                    {project.status}
-                                </Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Progress</span>
-                                    <span className="font-medium">{project.progress}%</span>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Progress</span>
+                                        <span className="font-medium">{project.progress}%</span>
+                                    </div>
+                                    <Progress value={project.progress} className="h-2" />
+                                    <div className="flex justify-between items-center text-xs text-muted-foreground mt-2">
+                                        <span>Status: {project.statusLine}</span>
+                                        {project.dueDate && <span>Due: {project.dueDate}</span>}
+                                    </div>
                                 </div>
-                                <Progress value={project.progress} className="h-2" />
-                                <p className="text-xs text-muted-foreground">Due: {project.dueDate}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            ) : (
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                        <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No Projects Found</h3>
+                        <p className="text-muted-foreground text-center">
+                            There are currently no projects in the system.
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }
