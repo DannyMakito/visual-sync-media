@@ -21,6 +21,7 @@ import {
     Building2
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 
 import { useQuery } from "convex/react"
@@ -59,7 +60,9 @@ export function ClientSidebar() {
         <Sidebar>
             <SidebarHeader className="border-b border-sidebar-border px-6 py-4">
                 <div className="flex items-center gap-2">
-                    <Building2 className="h-6 w-6 text-primary" />
+                    <div className="flex aspect-square size-6 items-center justify-center rounded overflow-hidden bg-white">
+                        <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" />
+                    </div>
                     <span className="font-semibold">Client Portal</span>
                 </div>
             </SidebarHeader>

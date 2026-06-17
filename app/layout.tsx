@@ -32,6 +32,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Visual Sync Media Portal",
   description: "Visual Sync Media multi-role management portal",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {

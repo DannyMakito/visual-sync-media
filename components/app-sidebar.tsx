@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import {
     AudioWaveform,
     BadgeCheck,
@@ -151,40 +152,10 @@ const adminNav: NavGroup[] = [
                 url: "/dashboard/users",
                 icon: Users,
             },
-            {
-                title: "Secured by Clerk",
-                url: "#",
-                icon: Lock,
-                items: [
-                    { title: "Settings", url: "#" },
-                    { title: "Profile", url: "#" },
-                ],
-            },
+
         ],
     },
-    {
-        title: "Pages",
-        items: [
-            {
-                title: "Auth",
-                url: "#",
-                icon: ShieldAlert,
-                items: [
-                    { title: "Login", url: "#" },
-                    { title: "Register", url: "#" },
-                ],
-            },
-            {
-                title: "Errors",
-                url: "#",
-                icon: AlertTriangle,
-                items: [
-                    { title: "404", url: "#" },
-                    { title: "500", url: "#" },
-                ],
-            },
-        ],
-    },
+
     {
         title: "Other",
         items: [
@@ -221,7 +192,6 @@ const clientNav: NavGroup[] = [
                 title: "Orders",
                 url: "/client/orders",
                 icon: Box,
-                badge: "2",
             },
         ],
     },
@@ -313,8 +283,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" className="hover:bg-transparent cursor-default">
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                                <Command className="size-4" />
+                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden bg-white">
+                                <Image src="/logo.png" alt="Logo" width={32} height={32} className="object-contain" />
                             </div>
                             <div className="grid flex-1 text-left text-sm leading-tight">
                                 <span className="truncate font-semibold">
