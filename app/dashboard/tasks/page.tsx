@@ -441,7 +441,7 @@ export default function TasksPage() {
                 }
                 setIsCreateProjectOpen(open)
             }}>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-base font-bold flex items-center gap-2 text-orange-500">
                             <FolderPlus size={18} />
@@ -506,7 +506,7 @@ export default function TasksPage() {
                         {/* Editor Assignment */}
                         <div className="space-y-3">
                             <Label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Assign Editors</Label>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1">
                                 {editors.map(editorData => {
                                     const editorId = editorData.user?._id
                                     if (!editorId) return null
