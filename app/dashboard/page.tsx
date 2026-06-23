@@ -281,7 +281,7 @@ export default function DashboardPage() {
     const liveProjects = useQuery(api.admin.getDashboardProjects) || []
     const pendingOrders = useQuery(api.orders.getPendingOrders) || []
     const allProjects = useQuery(api.projects.getEditorProjects) || []
-    const liveTeamMembers = useQuery(api.users.getAllEditors) || []
+    const editorStats = useQuery(api.admin.getEditorStats) || []
     
     const [forwardingRequest, setForwardingRequest] = useState<any>(null)
     const [selectedProject, setSelectedProject] = useState<any>(null)
@@ -529,31 +529,32 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold tracking-tight">Team Overview</h2>
                     </div>
-                    {liveTeamMembers.length === 0 ? (
+                    {editorStats.length === 0 ? (
                         <div className="p-12 text-center border-2 border-dashed rounded-2xl opacity-50">
                             <p className="font-medium">No team members found.</p>
                         </div>
                     ) : (
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {liveTeamMembers.map((editor: any) => {
+                            {editorStats.map((editor: any) => {
                                 const memberData = {
-                                    id: editor._id,
-                                    name: editor.user?.name || "Unknown Editor",
-                                    role: editor.specialties && editor.specialties.length > 0 
-                                        ? editor.specialties.join(", ") 
-                                        : (editor.user?.role || "Editor"),
-                                    avatar: editor.user?.image || "/avatars/01.png",
-                                    currentTask: "Ready for work",
-                                    project: "Various",
-                                    projects: 0,
-                                    lastUpdated: "Just now",
-                                    latestMessage: "Ready for assignments",
-                                    latestProject: "None",
-                                    hoursLogged: 0,
-                                    capacity: 40,
-                                    status: "online" as const
+                                    id: editor.userId,
+                                    name: editor.name || "Unknown Editor",
+                                    role: editor.specialties && editor.specialties.length > 0
+                                        ? editor.specialties.join(", ")
+                                        : "Editor",
+                                    avatar: editor.image || "",
+                                    currentTask: editor.currentTask,
+                                    project: editor.latestProject,
+                                    projects: editor.activeProjectCount,
+                                    lastUpdated: "Live",
+                                    latestMessage: editor.latestMessage,
+                                    latestProject: editor.latestProject,
+                                    // Workload as a percentage (0-100), used for progress bar
+                                    hoursLogged: editor.workload,
+                                    capacity: 100,
+                                    status: editor.activeProjectCount > 0 ? "busy" as const : "online" as const
                                 };
-                                return <TeamMemberCard key={editor._id} member={memberData} />;
+                                return <TeamMemberCard key={editor.editorId} member={memberData} />;
                             })}
                         </div>
                     )}
@@ -583,7 +584,9 @@ export default function DashboardPage() {
                                     status={project.status}
                                     comments={project.messages ? project.messages.length : 0}
                                     attachments={0}
-                                    assignees={project.assignees ? project.assignees.map((a: any) => a.image || "") : []}
+                                    assignees={project.assignees
+                                        ? project.assignees.map((a: any) => ({ name: a?.name || "?", image: a?.image || "" }))
+                                        : []}
                                     onClick={() => setSelectedProject(project)}
                                 />
                             ))}
@@ -823,7 +826,7 @@ export default function DashboardPage() {
                         </div>
                         <DialogTitle className="text-xl leading-normal">{selectedProject?.title}</DialogTitle>
                         <DialogDescription>
-                            Managed by {selectedProject?.assigneeDetails?.length || 0} team members
+                            Managed by {(selectedProject?.assignees || selectedProject?.assigneeDetails || []).length} team members
                         </DialogDescription>
                     </DialogHeader>
 
@@ -955,12 +958,17 @@ function ProjectCard({ title, project, time, priority, status, comments, attachm
                         </div>
 
                         <div className="flex -space-x-2">
-                            {assignees.map((src: string, i: number) => (
-                                <Avatar key={i} className="h-7 w-7 border-2 border-background">
-                                    <AvatarImage src={src} />
-                                    <AvatarFallback>U{i}</AvatarFallback>
-                                </Avatar>
-                            ))}
+                            {assignees.map((a: any, i: number) => {
+                                const src = typeof a === "string" ? a : a?.image || ""
+                                const name = typeof a === "string" ? "" : a?.name || ""
+                                const initials = name ? name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() : `U${i}`
+                                return (
+                                    <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                        <AvatarImage src={src} />
+                                        <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                                    </Avatar>
+                                )
+                            })}
                         </div>
                     </div>
                 </div>
@@ -1061,7 +1069,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
                     <div>
                         <div className="flex justify-between text-xs mb-1.5">
                             <span className="text-muted-foreground">Workload</span>
-                            <span className="font-medium">{member.hoursLogged}/{member.capacity}h</span>
+                            <span className="font-medium">{member.hoursLogged}%</span>
                         </div>
                         <Progress value={usagePercent} className={`h-2 ${progressColor.replace("bg-", "text-")}`} />
                     </div>

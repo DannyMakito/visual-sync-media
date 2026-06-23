@@ -219,6 +219,82 @@ export const getDashboardProjects = query({
     },
 })
 
+// Get real-time editor stats for the Team tab
+// Workload = (active project count / 5) * 100, capped at 100
+// This represents how full an editor's plate is relative to 5 concurrent projects (max reasonable load)
+export const getEditorStats = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) return []
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique()
+
+        if (!user || user.role !== "admin") return []
+
+        const editors = await ctx.db
+            .query("editors")
+            .filter((q) => q.eq(q.field("isActive"), true))
+            .collect()
+
+        const allProjects = await ctx.db.query("projects").collect()
+
+        return await Promise.all(
+            editors.map(async (editor) => {
+                const editorUser = await ctx.db.get(editor.userId)
+                if (!editorUser) return null
+
+                // Find all projects assigned to this editor
+                const assignedProjects = allProjects.filter(p =>
+                    p.assigneeIds.some(id => id === editor.userId)
+                )
+
+                const activeProjects = assignedProjects.filter(p => p.status !== "done")
+                const totalProjects = assignedProjects.length
+
+                // Workload: each active project = 20% load. Max 100%.
+                const workload = Math.min(Math.round((activeProjects.length / 5) * 100), 100)
+
+                // Most recently updated active project
+                const latestActiveProject = activeProjects.sort((a, b) => b.updatedAt - a.updatedAt)[0] || null
+
+                // Latest message sent on any assigned project
+                let latestMessage = "No messages yet"
+                let latestProject = latestActiveProject?.title || "No active projects"
+
+                if (latestActiveProject) {
+                    const msg = await ctx.db
+                        .query("messages")
+                        .withIndex("by_projectId", (q) => q.eq("projectId", latestActiveProject._id))
+                        .order("desc")
+                        .first()
+                    if (msg) {
+                        latestMessage = msg.content
+                    }
+                }
+
+                return {
+                    editorId: editor._id,
+                    userId: editorUser._id,
+                    name: editorUser.name,
+                    email: editorUser.email,
+                    image: editorUser.image,
+                    specialties: editor.specialties,
+                    projectCount: totalProjects,
+                    activeProjectCount: activeProjects.length,
+                    workload,
+                    latestMessage,
+                    latestProject,
+                    currentTask: latestActiveProject?.statusLine || "Ready for work",
+                }
+            })
+        ).then(results => results.filter(Boolean))
+    },
+})
+
 // Live data for the admin Insights tab
 export const getInsightMetrics = query({
     args: {},

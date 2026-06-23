@@ -319,7 +319,8 @@ export const getTotalUnreadCount = query({
         for (const orderId of orderIds) {
             const lastRead = await ctx.db
                 .query("readReceipts")
-                .withIndex("by_user_convo", (q) => q.eq("userId", user._id).eq("orderId", orderId).eq("projectId", undefined))
+                .withIndex("by_user_convo", (q) => q.eq("userId", user._id).eq("orderId", orderId))
+                .filter((q) => q.eq(q.field("projectId"), undefined))
                 .unique()
             
             const lastReadAt = lastRead?.lastReadAt || 0
@@ -336,7 +337,11 @@ export const getTotalUnreadCount = query({
         for (const projectId of projectIds) {
             const lastRead = await ctx.db
                 .query("readReceipts")
-                .withIndex("by_user_convo", (q) => q.eq("userId", user._id).eq("orderId", undefined).eq("projectId", projectId))
+                .withIndex("by_user_convo", (q) => q.eq("userId", user._id))
+                .filter((q) => q.and(
+                    q.eq(q.field("orderId"), undefined),
+                    q.eq(q.field("projectId"), projectId)
+                ))
                 .unique()
             
             const lastReadAt = lastRead?.lastReadAt || 0

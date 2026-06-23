@@ -65,7 +65,9 @@ export default function TasksPage() {
     const isAdmin = role === 'admin'
 
     const currentUser = useQuery(api.users.getCurrentUser)
-    const projects = useQuery(api.projects.getActiveProjects) || []
+    // Use getEditorProjects — for admin it returns ALL projects including done ones
+    // This ensures the Done column is populated when projects are marked complete
+    const projects = useQuery(api.projects.getEditorProjects) || []
     const debugProjects = useQuery(api.projects.getAllProjectsDebug) || []
     const quotedOrders = useQuery(api.orders.getQuotedOrders) || []
     const editors = useQuery(api.users.getAllEditors) || []
