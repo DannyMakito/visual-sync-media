@@ -16,7 +16,7 @@ export default function Contact() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const whatsappNumber = '27629609702';
+        const whatsappNumber = '27614409960';
         const message = `*New Contact Form Submission*%0A%0A` +
             `*Name:* ${formData.name}%0A` +
             `*Email:* ${formData.email}%0A` +
@@ -183,13 +183,13 @@ export default function Contact() {
                                     </div>
                                 </a>
 
-                                <a href="https://wa.me/27629609702" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
+                                <a href="https://wa.me/27614409960" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
                                     <div className="w-12 h-12 bg-black text-white flex items-center justify-center group-hover:bg-[#ff1a1a] transition-colors">
                                         <Phone size={20} />
                                     </div>
                                     <div>
                                         <span className="block text-sm uppercase tracking-widest text-gray-500">WhatsApp (Message Only)</span>
-                                        <span className="font-display text-xl group-hover:text-[#ff1a1a] transition-colors">+27 62 960 9702</span>
+                                        <span className="font-display text-xl group-hover:text-[#ff1a1a] transition-colors">+27 61 440 9960</span>
                                     </div>
                                 </a>
 
@@ -235,7 +235,7 @@ export default function Contact() {
                                 <p className="text-gray-400 mb-6">
                                     Ready to bring your vision to life? Fill out the form or reach out directly. We typically respond within 24 hours.
                                 </p>
-                                <a href="https://wa.me/27629609702" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#ff1a1a] px-6 py-3 font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors">
+                                <a href="https://wa.me/27614409960" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#ff1a1a] px-6 py-3 font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors">
                                     Message via WhatsApp
                                     <ArrowRight size={18} />
                                 </a>

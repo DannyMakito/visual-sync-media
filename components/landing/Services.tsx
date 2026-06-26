@@ -54,15 +54,10 @@ export const Services = () => {
 
     return (
         <section id="services" className="w-full bg-white relative border-b-4 border-black">
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 1fr)',
-                height: '60vh',
-                minHeight: '450px'
-            }} className="w-full">
+            <div className="w-full flex flex-col md:grid md:grid-cols-4 h-auto md:h-[60vh] md:min-h-[450px]">
 
                 {/* LEFT: 75% Full Bleed Content */}
-                <div className="relative border-r-4 border-black bg-black group overflow-hidden">
+                <div className="relative md:col-span-3 border-b-4 md:border-b-0 md:border-r-4 border-black bg-black group overflow-hidden h-[320px] sm:h-[400px] md:h-full">
 
                     {/* Poster Image */}
                     {!isPlaying && (
@@ -99,22 +94,22 @@ export const Services = () => {
                     {!isPlaying && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none mix-blend-difference">
                             <div className="group cursor-pointer pointer-events-auto" onClick={togglePlay}>
-                                <div className="w-20 h-20 rounded-full border border-white flex items-center justify-center transition-all duration-300 group-hover:bg-white group-hover:scale-110">
-                                    <Play size={32} className="text-white group-hover:text-black fill-current ml-1" />
+                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border border-white flex items-center justify-center transition-all duration-300 group-hover:bg-white group-hover:scale-110">
+                                    <Play size={28} className="text-white group-hover:text-black fill-current ml-1" />
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Bottom Info */}
-                    <div className={`absolute bottom-0 left-0 p-8 lg:p-12 max-w-2xl pointer-events-none text-white z-20 transition-opacity duration-500 ${isPlaying ? 'opacity-0' : 'opacity-100'}`}>
-                        <span className="block text-[10px] uppercase tracking-[0.4em] mb-4 border-l-2 border-white pl-4 mix-blend-difference">
+                    <div className={`absolute bottom-0 left-0 p-6 md:p-8 lg:p-12 max-w-2xl pointer-events-none text-white z-20 transition-opacity duration-500 ${isPlaying ? 'opacity-0' : 'opacity-100'}`}>
+                        <span className="block text-[8px] md:text-[10px] uppercase tracking-[0.4em] mb-2 md:mb-4 border-l-2 border-white pl-3 md:pl-4 mix-blend-difference">
                             Collection
                         </span>
-                        <h2 className="font-display text-6xl lg:text-8xl w-full uppercase leading-[0.85] tracking-tight mb-6 break-words mix-blend-difference">
+                        <h2 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-8xl w-full uppercase leading-[0.85] tracking-tight mb-3 md:mb-6 break-words mix-blend-difference">
                             {servicesData[activeService].title}
                         </h2>
-                        <p className="font-body text-sm lg:text-base uppercase tracking-widest max-w-md leading-relaxed opacity-80 mix-blend-difference">
+                        <p className="font-body text-xs md:text-sm lg:text-base uppercase tracking-widest max-w-md leading-relaxed opacity-80 mix-blend-difference">
                             {servicesData[activeService].description}
                         </p>
                     </div>
@@ -122,7 +117,7 @@ export const Services = () => {
                 </div>
 
                 {/* RIGHT: 25% Navigation Column */}
-                <div className="relative overflow-hidden">
+                <div className="relative md:col-span-1 overflow-hidden h-auto md:h-full">
 
                     {/* Background Wallpaper */}
                     <div className="absolute inset-0 z-0">
@@ -133,7 +128,7 @@ export const Services = () => {
                         />
                     </div>
 
-                    <div className="relative z-10 flex flex-col h-full">
+                    <div className="relative z-10 flex flex-col md:h-full">
                         {(Object.keys(servicesData) as ServiceType[]).map((item, index) => {
                             const isFirstItem = index === 0;
 
@@ -142,11 +137,11 @@ export const Services = () => {
                                     key={item}
                                     onClick={() => setActiveService(item)}
                                     className={`
-                                        w-full border-b border-black/20 last:border-b-0 px-6 py-4 lg:px-8
+                                        w-full border-b border-black/20 last:border-b-0 px-4 py-3.5 md:px-6 md:py-4 lg:px-8
                                         flex flex-row items-center justify-between group transition-all duration-300 relative overflow-hidden
                                         ${!isFirstItem && activeService === item ? 'bg-white/60 backdrop-blur-md border-l-4 border-l-[#ff1a1a]' : ''}
                                         ${!isFirstItem && activeService !== item ? 'bg-transparent hover:bg-white/40' : ''}
-                                        ${isFirstItem ? 'h-[15%] min-h-[100px] text-white' : 'flex-1'} 
+                                        ${isFirstItem ? 'h-[60px] md:h-[15%] md:min-h-[85px] text-white' : 'flex-1 min-h-[55px] md:min-h-0'} 
                                     `}
                                 >
                                     {/* First item dark background */}
@@ -163,7 +158,7 @@ export const Services = () => {
                                         </span>
 
                                         <div className="text-right">
-                                            <span className={`font-display text-2xl lg:text-3xl uppercase leading-none block transition-colors ${activeService === item ? 'text-[#ff1a1a] scale-105 origin-right' : ''} ${isFirstItem ? 'text-white' : 'text-black group-hover:text-[#ff1a1a]'}`}>
+                                            <span className={`font-display text-xl sm:text-2xl md:text-3xl uppercase leading-none block transition-colors ${activeService === item ? 'text-[#ff1a1a] scale-105 origin-right' : ''} ${isFirstItem ? 'text-white' : 'text-black group-hover:text-[#ff1a1a]'}`}>
                                                 {item}
                                             </span>
                                         </div>

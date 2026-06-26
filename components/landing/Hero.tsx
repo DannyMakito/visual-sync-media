@@ -41,18 +41,18 @@ export const Hero = () => {
                             </h1>
                         </div>
 
-                        <div className="flex flex-col items-end z-40 pt-2 gap-y-3">
+                        <div className="flex flex-col items-end z-40 pt-1.5 md:pt-2 gap-y-2 md:gap-y-3">
                             {/* Auth Buttons */}
-                            <div className="flex gap-3 mb-2">
+                            <div className="flex gap-2 md:gap-3 mb-1">
                                 <Link
                                     href="/login"
-                                    className="font-display text-xs md:text-sm uppercase tracking-wider text-black border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-all duration-300"
+                                    className="font-display text-[10px] md:text-sm uppercase tracking-wider text-black border border-black md:border-2 px-2.5 py-1.5 md:px-4 md:py-2 hover:bg-black hover:text-white transition-all duration-300"
                                 >
                                     Log In
                                 </Link>
                                 <Link
                                     href="/signup"
-                                    className="font-display text-xs md:text-sm uppercase tracking-wider text-white bg-[#ff1a1a] border-2 border-[#ff1a1a] px-4 py-2 hover:bg-black hover:border-black transition-all duration-300"
+                                    className="font-display text-[10px] md:text-sm uppercase tracking-wider text-white bg-[#ff1a1a] border border-[#ff1a1a] md:border-2 px-2.5 py-1.5 md:px-4 md:py-2 hover:bg-black hover:border-black transition-all duration-300"
                                 >
                                     Sign Up
                                 </Link>
@@ -60,7 +60,7 @@ export const Hero = () => {
                             
                             <Link
                                 href="/contact"
-                                className="font-display text-[2.5vw] md:text-[3vw] leading-none tracking-tighter text-black hover:text-[#ff1a1a] transition-colors duration-300 text-right uppercase"
+                                className="font-display text-[11px] md:text-[1.5vw] lg:text-[2vw] leading-none tracking-tighter text-black hover:text-[#ff1a1a] transition-colors duration-300 text-right uppercase"
                             >
                                 GET IN TOUCH
                             </Link>
@@ -69,17 +69,17 @@ export const Hero = () => {
 
 
                     {/* Bottom Row: Navigation Categories */}
-                    <div className="relative z-50 flex flex-wrap justify-between items-end mt-4 pt-3 pb-4 gap-x-4">
-                        <a href="#projects" onClick={(e) => scrollToSection(e, 'projects')} className="cursor-pointer font-display text-xs md:text-sm uppercase tracking-wider hover:text-[#ff1a1a] transition-colors mb-2 md:mb-0">
+                    <div className="relative z-50 flex justify-between items-center w-full mt-4 pt-3 pb-4 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider gap-x-2">
+                        <a href="#projects" onClick={(e) => scrollToSection(e, 'projects')} className="cursor-pointer font-display hover:text-[#ff1a1a] transition-colors">
                             Projects
                         </a>
-                        <Link href="/about" className="cursor-pointer font-display text-xs md:text-sm uppercase tracking-wider hover:text-[#ff1a1a] transition-colors mb-2 md:mb-0">
+                        <Link href="/about" className="cursor-pointer font-display hover:text-[#ff1a1a] transition-colors">
                             About
                         </Link>
-                        <a href="#equipment" onClick={(e) => scrollToSection(e, 'equipment')} className="cursor-pointer font-display text-xs md:text-sm uppercase tracking-wider hover:text-[#ff1a1a] transition-colors mb-2 md:mb-0">
+                        <a href="#equipment" onClick={(e) => scrollToSection(e, 'equipment')} className="cursor-pointer font-display hover:text-[#ff1a1a] transition-colors">
                             Equipment
                         </a>
-                        <Link href="/contact" className="cursor-pointer font-display text-xs md:text-sm uppercase tracking-wider hover:text-[#ff1a1a] transition-colors mb-2 md:mb-0">
+                        <Link href="/contact" className="cursor-pointer font-display hover:text-[#ff1a1a] transition-colors">
                             Bundles
                         </Link>
                     </div>
