@@ -33,10 +33,12 @@ const extraProjects: Project[] = [
   // --- Featured Additions ---
   { id: 30, title: "The Matrix Edit", image: "https://img.youtube.com/vi/gEGD3rj2uGQ/maxresdefault.jpg", type: 'youtube', videoId: "gEGD3rj2uGQ" },
   { id: 31, title: "Travel Boss Ad", image: "https://img.youtube.com/vi/4zztB6oQi2c/maxresdefault.jpg", type: 'youtube', videoId: "4zztB6oQi2c" },
-  { id: 32, title: "Real Estate Promo", image: "https://img.youtube.com/vi/KQMLEIGX90c/maxresdefault.jpg", type: 'youtube', videoId: "KQMLEIGX90c" },
+  { id: 32, title: "Interstellar", image: "https://img.youtube.com/vi/KQMLEIGX90c/maxresdefault.jpg", type: 'youtube', videoId: "KQMLEIGX90c" },
   { id: 33, title: "Short Edit 01", image: "https://img.youtube.com/vi/9IiygHXFLnA/maxresdefault.jpg", type: 'youtube', videoId: "9IiygHXFLnA" },
   { id: 34, title: "Short Edit 02", image: "https://img.youtube.com/vi/WpqNb4EeG_c/maxresdefault.jpg", type: 'youtube', videoId: "WpqNb4EeG_c" },
   { id: 35, title: "Glam Session", image: "https://img.youtube.com/vi/BDOS2gJw0fA/maxresdefault.jpg", type: 'youtube', videoId: "BDOS2gJw0fA" },
+  { id: 36, title: "The Amazing Spiderman Edit", image: "https://img.youtube.com/vi/R302_wJ7R2A/maxresdefault.jpg", type: 'youtube', videoId: "R302_wJ7R2A" },
+  { id: 37, title: "Hacksaw Ridge", image: "https://img.youtube.com/vi/uuVyqxPqlhI/maxresdefault.jpg", type: 'youtube', videoId: "uuVyqxPqlhI" },
   // --- Selected Works ---
   { id: 1, title: "Selected Work 01", image: "https://img.youtube.com/vi/85jhMfTnctg/maxresdefault.jpg", type: 'youtube', videoId: "85jhMfTnctg" },
   { id: 2, title: "Selected Work 02", image: "https://img.youtube.com/vi/xuvjzed930E/maxresdefault.jpg", type: 'youtube', videoId: "xuvjzed930E" },

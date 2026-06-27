@@ -43,19 +43,24 @@ export const Hero = () => {
 
                         <div className="flex flex-col items-end z-40 pt-1.5 md:pt-2 gap-y-2 md:gap-y-3">
                             {/* Auth Buttons */}
-                            <div className="flex gap-2 md:gap-3 mb-1">
-                                <Link
-                                    href="/login"
-                                    className="font-display text-[10px] md:text-sm uppercase tracking-wider text-black border border-black md:border-2 px-2.5 py-1.5 md:px-4 md:py-2 hover:bg-black hover:text-white transition-all duration-300"
-                                >
-                                    Log In
-                                </Link>
-                                <Link
-                                    href="/signup"
-                                    className="font-display text-[10px] md:text-sm uppercase tracking-wider text-white bg-[#ff1a1a] border border-[#ff1a1a] md:border-2 px-2.5 py-1.5 md:px-4 md:py-2 hover:bg-black hover:border-black transition-all duration-300"
-                                >
-                                    Sign Up
-                                </Link>
+                            <div className="flex flex-col items-end gap-1">
+                                <div className="flex gap-2 md:gap-3 mb-0.5">
+                                    <Link
+                                        href="/login"
+                                        className="font-display text-[10px] md:text-sm uppercase tracking-wider text-black border border-black md:border-2 px-2.5 py-1.5 md:px-4 md:py-2 hover:bg-black hover:text-white transition-all duration-300"
+                                    >
+                                        Log In
+                                    </Link>
+                                    <Link
+                                        href="/signup"
+                                        className="font-display text-[10px] md:text-sm uppercase tracking-wider text-white bg-[#ff1a1a] border border-[#ff1a1a] md:border-2 px-2.5 py-1.5 md:px-4 md:py-2 hover:bg-black hover:border-black transition-all duration-300"
+                                    >
+                                        Sign Up
+                                    </Link>
+                                </div>
+                                <span className="font-mono text-[8px] md:text-[10px] text-black/70 max-w-[200px] md:max-w-[260px] text-right leading-tight uppercase tracking-wider">
+                                    Need a video edit? Join our portal to upload media & track projects virtually.
+                                </span>
                             </div>
                             
                             <Link
