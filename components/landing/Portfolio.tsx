@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MuxVideo from '@mux/mux-video-react';
 import { ArrowUpRight, X } from 'lucide-react';
+import Link from 'next/link';
 import DomeGallery from './DomeGallery';
 
 const clients = [
@@ -162,9 +163,9 @@ export const Portfolio: React.FC = () => {
             </div>
             <div className="relative z-10 flex flex-wrap gap-4">
               {equipmentTags.map((tag, idx) => (
-                <span key={idx} className="font-display text-xl uppercase border-2 border-vs-black/10 px-4 py-2 hover:bg-vs-red hover:text-white hover:border-vs-red transition-all cursor-default">
+                <Link key={idx} href={`/equipment#${tag.toLowerCase()}`} className="font-display text-xl uppercase border-2 border-vs-black/10 px-4 py-2 hover:bg-vs-red hover:text-white hover:border-vs-red transition-all cursor-pointer">
                   {tag}
-                </span>
+                </Link>
               ))}
             </div>
           </div>

@@ -104,13 +104,13 @@ export default function About() {
                     </div>
                     <div className="space-y-6 font-body text-lg text-gray-700">
                         <p>
-                            The agency operates with a collective experience of over 13 years, drawing on a trusted network of seasoned creatives to deliver premium, consistent results at scale. Under the leadership of Managing Director <strong>Lowe Porogo</strong>, VisualSync Media has produced content that has reached millions of viewers across digital platforms.
+                            The agency operates with a collective experience of over 13 years, drawing on a trusted network of seasoned creatives to deliver premium, consistent results at scale. Under the leadership of Managing Director <strong>Lowe Porogo</strong>, VisualSync Media combines years of professional editing experience with a modern, client-focused production workflow.
                         </p>
                         <p>
-                            VisualSync Media has worked with brands and platforms such as <strong>Showmax, the Betway Premiership, Super Picks, 22Ours, The Straw Hat Group, GT Gaming Lounge, Youngins, PLUC, OS Medical, Pefmo, and Rob in the 18 Area</strong>, alongside celebrities, influencers, professionals, and growing businesses.
+                            <strong>Lowe Porogo</strong> has contributed to content for brands and platforms including Showmax, the Betway Premiership, Super Picks, 22Ours, The Straw Hat Group, GT Gaming Lounge, Youngins, PLUC, OS Medical, Pefmo, and Rob in the 18 Area throughout his professional career, while VisualSync Media continues to partner with businesses, creators, and organisations to produce high-quality content.
                         </p>
                         <p>
-                            The agency takes a platform-first approach — combining creative instinct with strategic execution to ensure content is optimised for attention, engagement, and performance. Every project is handled with intention, clarity, and respect for the brand's long-term image.
+                            The agency takes a platform-first approach, combining creative instinct with strategic execution to ensure content is optimised for attention, engagement, and performance. Every project is handled with intention, clarity, and respect for each client’s long-term brand.
                         </p>
                         <p className="font-bold text-black">
                             At its core, VisualSync Media exists to help brands cut through the noise, communicate with confidence, and remain memorable in an increasingly competitive digital landscape.

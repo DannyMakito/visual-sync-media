@@ -81,9 +81,9 @@ export const Hero = () => {
                         <Link href="/about" className="cursor-pointer font-display hover:text-[#ff1a1a] transition-colors">
                             About
                         </Link>
-                        <a href="#equipment" onClick={(e) => scrollToSection(e, 'equipment')} className="cursor-pointer font-display hover:text-[#ff1a1a] transition-colors">
+                        <Link href="/equipment" className="cursor-pointer font-display hover:text-[#ff1a1a] transition-colors">
                             Equipment
-                        </a>
+                        </Link>
                         <Link href="/contact" className="cursor-pointer font-display hover:text-[#ff1a1a] transition-colors">
                             Bundles
                         </Link>
