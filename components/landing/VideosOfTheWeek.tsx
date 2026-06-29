@@ -25,24 +25,24 @@ interface WeeklyVideo {
 const weeklyVideos: WeeklyVideo[] = [
     {
         id: 'wv1',
-        title: 'The Matrix Edit',
-        youtubeId: 'gEGD3rj2uGQ',
-        thumbnail: 'https://img.youtube.com/vi/gEGD3rj2uGQ/maxresdefault.jpg',
+        title: 'Hacksaw Ridge',
+        youtubeId: 'uuVyqxPqlhI',
+        thumbnail: 'https://img.youtube.com/vi/uuVyqxPqlhI/maxresdefault.jpg',
         category: 'Cinematic Edit',
     },
     {
         id: 'wv2',
-        title: 'The Amazing Spiderman Edit',
-        youtubeId: 'R302_wJ7R2A',
-        thumbnail: 'https://img.youtube.com/vi/R302_wJ7R2A/maxresdefault.jpg',
-        category: 'Cinematic Edit',
+        title: 'Interstellar',
+        youtubeId: 'KQMLEIGX90c',
+        thumbnail: 'https://img.youtube.com/vi/KQMLEIGX90c/maxresdefault.jpg',
+        category: 'Featured Edit',
     },
     {
         id: 'wv3',
-        title: 'Travel Boss Ad',
-        youtubeId: '4zztB6oQi2c',
-        thumbnail: 'https://img.youtube.com/vi/4zztB6oQi2c/maxresdefault.jpg',
-        category: 'Featured Edit',
+        title: 'The Matrix Edit',
+        youtubeId: 'gEGD3rj2uGQ',
+        thumbnail: 'https://img.youtube.com/vi/gEGD3rj2uGQ/maxresdefault.jpg',
+        category: 'Classic',
     },
 ];
 
